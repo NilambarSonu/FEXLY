@@ -24,7 +24,11 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
     public let historyService: CurrencyHistoryService
     public let keychain: KeychainStoring
 
-    @Published public var selectedMode: SkyletMode = .currency
+    @Published public var selectedMode: SkyletMode = .currency {
+        didSet {
+            host?.shelf.invalidateLayout(for: "skylet")
+        }
+    }
     @Published public private(set) var latestConversion: CurrencyConversionResult?
     @Published public var isPinned: Bool = false {
         didSet {
@@ -152,7 +156,8 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
 
 extension SkyletDroplet: ShelfWidgetProviding {
     public var widgetDescriptors: [ShelfWidgetDescriptor] {
-        [
+        let cardHeight: CGFloat = (selectedMode == .settings) ? 198 : 160
+        return [
             ShelfWidgetDescriptor(
                 id: "skylet",
                 title: "Skylet",
@@ -160,7 +165,7 @@ extension SkyletDroplet: ShelfWidgetProviding {
                 layoutTraits: ShelfWidgetLayoutTraits(
                     preferredSoloWidth: 420,
                     preferredPairedWidth: 210,
-                    contentHeight: .fixed(160)
+                    contentHeight: .fixed(cardHeight)
                 ),
                 searchKeywords: [
                     "currency", "converter", "inr", "rupee",

@@ -79,14 +79,13 @@ public struct ShotCurrencyInputView: View {
 
                     Spacer()
 
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(SpecTheme.activeStatus)
-                            .frame(width: 5, height: 5)
-                        Text("• API Active")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(SpecTheme.activeStatus)
+                    HStack(spacing: 3) {
+                        Text("•")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("API Active")
+                            .font(.system(size: 10, weight: .semibold))
                     }
+                    .foregroundStyle(SpecTheme.activeStatus)
                 }
 
                 // Apple Liquid Glass Search Capsule
@@ -251,14 +250,13 @@ public struct ShotCurrencyResultView: View {
                     // Rate Formula & Status & Pin Icon
                     HStack(spacing: 8) {
                         VStack(alignment: .trailing, spacing: 1) {
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .fill(SpecTheme.activeStatus)
-                                    .frame(width: 5, height: 5)
-                                Text("• API Active")
-                                    .font(.system(size: 9.5, weight: .medium))
-                                    .foregroundStyle(SpecTheme.activeStatus)
+                            HStack(spacing: 3) {
+                                Text("•")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("API Active")
+                                    .font(.system(size: 9.5, weight: .semibold))
                             }
+                            .foregroundStyle(SpecTheme.activeStatus)
                             Text("$1 = ₹94.47")
                                 .font(.system(size: 10.5, weight: .medium, design: .rounded))
                                 .foregroundStyle(Color.white.opacity(0.85))
@@ -459,14 +457,13 @@ public struct ShotSettingsView: View {
 
                     Spacer()
 
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(SpecTheme.activeStatus)
-                            .frame(width: 5, height: 5)
-                        Text("• API Active")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(SpecTheme.activeStatus)
+                    HStack(spacing: 3) {
+                        Text("•")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("API Active")
+                            .font(.system(size: 10, weight: .semibold))
                     }
+                    .foregroundStyle(SpecTheme.activeStatus)
                 }
 
                 // Api Key Row
@@ -503,18 +500,26 @@ public struct ShotSettingsView: View {
                         .foregroundStyle(Color.white.opacity(0.60))
                 }
 
-                // Default Input Currency (Native Menu Style)
+                // Section label "Default" above the line (Item 6)
+                Text("Default")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.45))
+                    .padding(.top, 2)
+
+                Divider()
+                    .background(Color.white.opacity(0.10))
+
+                // Input Currency Row (Item 5 & 6)
                 HStack {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Default").font(.system(size: 9)).foregroundStyle(Color.white.opacity(0.40))
-                        Text("Input Currency :").font(.system(size: 11, weight: .medium)).foregroundStyle(Color.white.opacity(0.85))
-                    }
+                    Text("Input Currency :")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.85))
                     Spacer()
                     HStack(spacing: 4) {
                         Text("$ USD")
                             .font(.system(size: 11, weight: .semibold, design: .rounded))
                             .foregroundStyle(Color.white)
-                        Image(systemName: "chevron.up.chevron.down")
+                        Image(systemName: "chevron.down")
                             .font(.system(size: 8, weight: .semibold))
                             .foregroundStyle(Color.white.opacity(0.60))
                     }
@@ -532,15 +537,17 @@ public struct ShotSettingsView: View {
                     )
                 }
 
-                // Choose Your Local Currency (Native Menu Style)
+                // Choose Your Local Currency Row (Item 5 & 6)
                 HStack {
-                    Text("Choose Your Local Currency :").font(.system(size: 11, weight: .medium)).foregroundStyle(Color.white.opacity(0.85))
+                    Text("Choose Your Local Currency :")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.85))
                     Spacer()
                     HStack(spacing: 4) {
                         Text("₹ INR")
                             .font(.system(size: 11, weight: .semibold, design: .rounded))
                             .foregroundStyle(Color.white)
-                        Image(systemName: "chevron.up.chevron.down")
+                        Image(systemName: "chevron.down")
                             .font(.system(size: 8, weight: .semibold))
                             .foregroundStyle(Color.white.opacity(0.60))
                     }
@@ -557,6 +564,9 @@ public struct ShotSettingsView: View {
                             .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
                     )
                 }
+
+                Divider()
+                    .background(Color.white.opacity(0.10))
 
                 // Graph Toggle
                 HStack {

@@ -25,8 +25,15 @@ public struct CurrencyView: View {
     @State private var errorMessage: String?
     @State private var refreshSpinAngle: Double = 0
     @State private var copiedConfirmation: Bool = false
-    @State private var isTargetedDefault: Bool = false
-    @State private var isTargetedLocal: Bool = false
+    private enum PaletteDragRole {
+        case defaultCurrency
+        case localCurrency
+    }
+    @State private var dragRole: PaletteDragRole? = nil
+    @State private var dragSourceCode: CurrencyCode? = nil
+    @State private var dragPosition: CGPoint = .zero
+    @State private var hoveredTargetCode: CurrencyCode? = nil
+    @State private var cardFrames: [CurrencyCode: CGRect] = [:]
     @FocusState private var isSearchFocused: Bool
     @FocusState private var isAmountFocused: Bool
 
@@ -154,20 +161,29 @@ public struct CurrencyView: View {
                     .strokeBorder(isSearchFocused ? SkyletTheme.skyBlue.opacity(0.60) : Color.white.opacity(0.16), lineWidth: 0.5)
             )
 
-            // Quick Currency Shortcut Chips (Draggable & Drop Targets)
+            // Quick Currency Shortcut Chips (Item 1: Fluid zero-lag drag palette)
             let (row1, row2) = shortcutRows
-            VStack(spacing: 6) {
-                HStack(spacing: 6) {
-                    ForEach(Array(row1.enumerated()), id: \.element) { index, code in
-                        quickCurrencyChip(code: code, isFirstRowLead: (index == 0), isFirstRowSecond: (index == 1))
+            ZStack {
+                VStack(spacing: 6) {
+                    HStack(spacing: 6) {
+                        ForEach(row1, id: \.self) { code in
+                            quickCurrencyChip(code: code)
+                        }
+                    }
+                    HStack(spacing: 6) {
+                        ForEach(row2, id: \.self) { code in
+                            quickCurrencyChip(code: code)
+                        }
                     }
                 }
-                HStack(spacing: 6) {
-                    ForEach(row2, id: \.self) { code in
-                        quickCurrencyChip(code: code, isFirstRowLead: false, isFirstRowSecond: false)
-                    }
+
+                // Floating Color Palette Swatch follows cursor with 0 lag
+                if let role = dragRole, let source = dragSourceCode {
+                    floatingDragSwatch(role: role, source: source)
                 }
             }
+            .coordinateSpace(name: "ShortcutGridArea")
+            .onPreferenceChange(CardFramePreferenceKey.self) { cardFrames = $0 }
 
             if let error = errorMessage {
                 Text(error)
@@ -274,6 +290,7 @@ public struct CurrencyView: View {
             .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
         }
         .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
         .help("Change Source Currency")
     }
 
@@ -462,115 +479,155 @@ public struct CurrencyView: View {
         .help("Click to copy converted amount")
     }
 
-    // MARK: - Quick Currency Chip (Apple Liquid Glass — Item 2)
+    // MARK: - Quick Currency Chip (Apple Liquid Glass — Item 1 & 2)
 
-    private func quickCurrencyChip(code: CurrencyCode, isFirstRowLead: Bool, isFirstRowSecond: Bool) -> some View {
+    private func quickCurrencyChip(code: CurrencyCode) -> some View {
         let isDefault = (code == droplet.defaultInputCurrency)
         let isLocal = (code == droplet.localTargetCurrency)
         let isAccent = isDefault || isLocal
+        let isHoveredTarget = (hoveredTargetCode == code && dragSourceCode != code)
 
         let fillColor: Color = isDefault
-            ? Color(red: 0.12, green: 0.48, blue: 0.95).opacity(0.85)
+            ? Color(red: 0.12, green: 0.48, blue: 0.95).opacity(0.85) // Apple Vibrant Blue
             : (isLocal ? Color(red: 0.35, green: 0.75, blue: 0.98).opacity(0.70) : Color.white.opacity(0.08))
-        let strokeColor: Color = isDefault
-            ? Color.white.opacity(0.50)
-            : (isLocal ? Color.white.opacity(0.35) : Color.white.opacity(0.08))
-        let strokeWidth: CGFloat = isAccent ? 1.0 : 0.5
+        let strokeColor: Color = isHoveredTarget
+            ? Color.white
+            : (isDefault ? Color.white.opacity(0.50) : (isLocal ? Color.white.opacity(0.35) : Color.white.opacity(0.08)))
+        let strokeWidth: CGFloat = isHoveredTarget ? 1.5 : (isAccent ? 1.0 : 0.5)
         let fontWeight: Font.Weight = isAccent ? .bold : .medium
 
-        let chipView = Button {
-            selectShortcut(code: code)
-        } label: {
-            Text(code.rawValue)
-                .font(.system(size: 9.5, weight: fontWeight))
+        return Text(code.rawValue)
+            .font(.system(size: 9.5, weight: fontWeight))
+            .foregroundStyle(Color.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(fillColor)
+                    .background(.ultraThinMaterial)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(strokeColor, lineWidth: strokeWidth)
+            )
+            .shadow(color: isDefault ? Color.blue.opacity(0.3) : .clear, radius: 2, x: 0, y: 1)
+            .scaleEffect(isHoveredTarget ? 1.08 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isHoveredTarget)
+            .background(
+                GeometryReader { geo in
+                    Color.clear
+                        .preference(
+                            key: CardFramePreferenceKey.self,
+                            value: [code: geo.frame(in: .named("ShortcutGridArea"))]
+                        )
+                }
+            )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                selectShortcut(code: code)
+            }
+            .gesture(
+                DragGesture(minimumDistance: 3, coordinateSpace: .named("ShortcutGridArea"))
+                    .onChanged { value in
+                        if dragRole == nil {
+                            if code == droplet.defaultInputCurrency {
+                                dragRole = .defaultCurrency
+                            } else if code == droplet.localTargetCurrency {
+                                dragRole = .localCurrency
+                            } else {
+                                dragRole = .defaultCurrency
+                            }
+                            dragSourceCode = code
+                            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                        }
+                        dragPosition = value.location
+
+                        var target: CurrencyCode? = nil
+                        for (candidateCode, rect) in cardFrames {
+                            if rect.contains(value.location) {
+                                target = candidateCode
+                                break
+                            }
+                        }
+                        if target != hoveredTargetCode {
+                            if target != nil {
+                                NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+                            }
+                            hoveredTargetCode = target
+                        }
+                    }
+                    .onEnded { value in
+                        if let target = hoveredTargetCode, let role = dragRole, target != dragSourceCode {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                                switch role {
+                                case .defaultCurrency:
+                                    droplet.defaultInputCurrency = target
+                                    sourceCurrency = target
+                                case .localCurrency:
+                                    droplet.localTargetCurrency = target
+                                    targetCurrency = target
+                                }
+                            }
+                            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                        }
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            dragRole = nil
+                            dragSourceCode = nil
+                            hoveredTargetCode = nil
+                        }
+                    }
+            )
+            .help(isDefault ? "Default Input Currency (\(code.rawValue)) — Drag to another card to change default" : (isLocal ? "Local Target Currency (\(code.rawValue)) — Drag to another card to change local" : "Select \(code.rawValue)"))
+    }
+
+    // MARK: - Floating Drag Swatch (Item 1: Comes out from card with cursor)
+
+    private func floatingDragSwatch(role: PaletteDragRole, source: CurrencyCode) -> some View {
+        let swatchColor = (role == .defaultCurrency)
+            ? Color(red: 0.12, green: 0.48, blue: 0.95)
+            : Color(red: 0.35, green: 0.75, blue: 0.98)
+
+        return HStack(spacing: 4) {
+            Circle()
+                .fill(Color.white)
+                .frame(width: 5, height: 5)
+            Text(source.rawValue)
+                .font(.system(size: 9.5, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(fillColor)
-                        .background(.ultraThinMaterial)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .strokeBorder(strokeColor, lineWidth: strokeWidth)
-                )
-                .shadow(color: isDefault ? Color.blue.opacity(0.3) : .clear, radius: 2, x: 0, y: 1)
         }
-        .buttonStyle(.plain)
-        .onDrag {
-            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
-            return NSItemProvider(object: code.rawValue as NSString)
-        }
-        .help(isDefault ? "Default Input Currency (\(code.rawValue)) — Drag any currency here to replace" : (isLocal ? "Local Target Currency (\(code.rawValue)) — Drag any currency here to replace" : "Select \(code.rawValue)"))
-
-        return Group {
-            if isFirstRowLead {
-                chipView.onDrop(of: ["public.text", "public.utf8-plain-text"], isTargeted: $isTargetedDefault) { providers in
-                    handleDrop(providers: providers, targetSlot: .defaultInput)
-                }
-            } else if isFirstRowSecond {
-                chipView.onDrop(of: ["public.text", "public.utf8-plain-text"], isTargeted: $isTargetedLocal) { providers in
-                    handleDrop(providers: providers, targetSlot: .localTarget)
-                }
-            } else {
-                chipView
-            }
-        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(
+            Capsule(style: .continuous)
+                .fill(swatchColor)
+                .shadow(color: swatchColor.opacity(0.60), radius: 8, x: 0, y: 3)
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(Color.white.opacity(0.85), lineWidth: 1)
+        )
+        .scaleEffect(1.15)
+        .position(dragPosition)
+        .allowsHitTesting(false)
+        .zIndex(100)
     }
 
-    // MARK: - Drag & Drop Handling
-
-    private enum DropSlot {
-        case defaultInput
-        case localTarget
-    }
-
-    private func handleDrop(providers: [NSItemProvider], targetSlot: DropSlot) -> Bool {
-        guard let provider = providers.first else { return false }
-        provider.loadItem(forTypeIdentifier: "public.text", options: nil) { item, _ in
-            var text: String?
-            if let data = item as? Data {
-                text = String(data: data, encoding: .utf8)
-            } else if let str = item as? String {
-                text = str
-            } else if let nsStr = item as? NSString {
-                text = nsStr as String
-            }
-            guard let raw = text?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  let droppedCode = CurrencyCode(raw) else { return }
-
-            DispatchQueue.main.async {
-                NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
-                switch targetSlot {
-                case .defaultInput:
-                    self.droplet.defaultInputCurrency = droppedCode
-                    self.sourceCurrency = droppedCode
-                case .localTarget:
-                    self.droplet.localTargetCurrency = droppedCode
-                    self.targetCurrency = droppedCode
-                }
-                self.submitInput()
-            }
-        }
-        return true
-    }
-
-    // MARK: - Provider Status Badge
+    // MARK: - Provider Status Badge (Item 7: Single crisp dot close to text)
 
     private var providerStatusBadge: some View {
         let hasKey = (droplet.keychain.get(key: "twelvedata_api_key") != nil)
         let isLive = conversionResult?.freshness == .live
+        let statusColor = isLive ? SkyletTheme.activeStatus : (hasKey ? SkyletTheme.statusDelayed : SkyletTheme.secondaryText)
+        let statusTitle = isLive ? "API Active" : (hasKey ? "Delayed" : "Daily Reference")
 
-        return HStack(spacing: 4) {
-            Circle()
-                .fill(isLive ? SkyletTheme.activeStatus : (hasKey ? SkyletTheme.statusDelayed : Color.white.opacity(0.50)))
-                .frame(width: 5, height: 5)
-            Text(isLive ? "• API Active" : (hasKey ? "• Delayed" : "• Daily Reference"))
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(isLive ? SkyletTheme.activeStatus : SkyletTheme.secondaryText)
+        return HStack(spacing: 3) {
+            Text("•")
+                .font(.system(size: 11, weight: .bold))
+            Text(statusTitle)
+                .font(.system(size: 10, weight: .semibold))
         }
+        .foregroundStyle(statusColor)
     }
 
     // MARK: - Actions
@@ -673,5 +730,14 @@ public struct CurrencyView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Card Frame Preference Key (Item 1)
+
+private struct CardFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [CurrencyCode: CGRect] = [:]
+    static func reduce(value: inout [CurrencyCode: CGRect], nextValue: () -> [CurrencyCode: CGRect]) {
+        value.merge(nextValue()) { $1 }
     }
 }

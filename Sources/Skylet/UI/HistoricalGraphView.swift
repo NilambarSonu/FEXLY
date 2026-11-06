@@ -43,6 +43,7 @@ final class HistoricalGraphViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var hoveredPointIndex: Int? = nil
+    @Published var hoverCursorX: CGFloat? = nil
 
     func loadHistory(
         service: CurrencyHistoryService,
@@ -220,48 +221,61 @@ public struct HistoricalGraphView: View {
                         .allowsHitTesting(false)
                 }
 
-                // Interactive Hover Indicator & Tooltip
+                // Interactive Hover Indicator & Tooltip (Item 3: 100% aligned with cursor pointer)
                 if let hoverIdx = vm.hoveredPointIndex, hoverIdx < points.count, hoverIdx < coordinates.count {
-                    let point = coordinates[hoverIdx]
                     let historyPt = points[hoverIdx]
+                    let lineX = vm.hoverCursorX ?? coordinates[hoverIdx].x
 
-                    // Vertical guide line (hit testing disabled to prevent hover jitter)
+                    // Calculate continuous interpolated Y for perfect dot positioning on line
+                    let relX = min(max(lineX - leftMargin, 0), chartW)
+                    let fraction = chartW > 0 ? (relX / chartW) : 0
+                    let continuousIdx = fraction * CGFloat(max(points.count - 1, 1))
+                    let idxLower = min(max(Int(floor(continuousIdx)), 0), points.count - 1)
+                    let idxUpper = min(idxLower + 1, points.count - 1)
+                    let segmentFraction = continuousIdx - CGFloat(idxLower)
+                    let dotY = coordinates[idxLower].y + segmentFraction * (coordinates[idxUpper].y - coordinates[idxLower].y)
+                    let dotPoint = CGPoint(x: lineX, y: dotY)
+
+                    // Vertical guide line aligned exactly with cursor
                     Path { p in
-                        p.move(to: CGPoint(x: point.x, y: 0))
-                        p.addLine(to: CGPoint(x: point.x, y: chartH))
+                        p.move(to: CGPoint(x: lineX, y: 0))
+                        p.addLine(to: CGPoint(x: lineX, y: chartH))
                     }
-                    .stroke(Color.white.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
+                    .stroke(Color.white.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
                     .allowsHitTesting(false)
 
                     // Highlighted circle dot
                     Circle()
                         .fill(SkyletTheme.chartLine)
                         .frame(width: 6, height: 6)
-                        .overlay(Circle().stroke(Color.white, lineWidth: 1))
-                        .position(point)
+                        .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
+                        .position(dotPoint)
                         .allowsHitTesting(false)
 
                     // Tooltip badge
-                    hoverTooltip(point: historyPt, coord: point, chartWidth: w)
+                    hoverTooltip(point: historyPt, coord: dotPoint, chartWidth: w)
                         .allowsHitTesting(false)
                 }
 
-                // Dedicated transparent hover overlay on top of all chart visuals
-                Color.clear
+                // Dedicated hover overlay covering full canvas with active hit testing
+                Rectangle()
+                    .fill(Color.white.opacity(0.001))
+                    .frame(width: w, height: h)
                     .contentShape(Rectangle())
                     .onContinuousHover { phase in
                         switch phase {
                         case .active(let location):
-                            let clampedX = min(max(location.x - leftMargin, 0), chartW)
-                            let fraction = clampedX / chartW
+                            let clampedX = min(max(location.x, leftMargin), leftMargin + chartW)
+                            vm.hoverCursorX = clampedX
+                            let relX = clampedX - leftMargin
+                            let fraction = chartW > 0 ? (relX / chartW) : 0
                             let nearestIdx = min(max(Int(round(fraction * CGFloat(points.count - 1))), 0), points.count - 1)
                             if vm.hoveredPointIndex != nearestIdx {
                                 vm.hoveredPointIndex = nearestIdx
                             }
                         case .ended:
-                            if vm.hoveredPointIndex != nil {
-                                vm.hoveredPointIndex = nil
-                            }
+                            vm.hoverCursorX = nil
+                            vm.hoveredPointIndex = nil
                         }
                     }
             }

@@ -30,26 +30,29 @@ public struct SettingsView: View {
             headerRow
 
             // Settings Form Card (Liquid Glass Tile)
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 8) {
                 // 1. API Key Row
                 apiKeyRow
 
+                // Section label "Default" above the line (Item 6)
+                Text("Default")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.45))
+                    .padding(.top, 2)
+
                 Divider()
-                    .background(Color.white.opacity(0.08))
+                    .background(Color.white.opacity(0.10))
 
-                // 2. Default Input Currency Row (Native Apple Menu Dropdown)
-                defaultInputCurrencyRow
+                // 2. Input Currency Row (Item 5 & 6: Single dropdown chevron, no duplicate label)
+                inputCurrencyRow
 
-                Divider()
-                    .background(Color.white.opacity(0.08))
-
-                // 3. Choose Your Local Currency Row (Native Apple Menu Dropdown)
+                // 3. Choose Your Local Currency Row (Item 5 & 6)
                 chooseLocalCurrencyRow
 
                 Divider()
-                    .background(Color.white.opacity(0.08))
+                    .background(Color.white.opacity(0.10))
 
-                // 4. Graph Toggle Row
+                // 4. Graph Toggle Row (Item 4: Fully visible with smooth expanded height)
                 graphToggleRow
             }
             .padding(10)
@@ -110,15 +113,16 @@ public struct SettingsView: View {
 
             Spacer()
 
-            // Status Indicator
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(isVerifiedActive ? SkyletTheme.activeStatus : Color.white.opacity(0.40))
-                    .frame(width: 5, height: 5)
-                Text(isVerifiedActive ? "• API Active" : (hasStoredKey ? "• Stored" : "• Daily Reference"))
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(isVerifiedActive ? SkyletTheme.activeStatus : SkyletTheme.secondaryText)
+            // Status Indicator (Item 7: Single crisp dot close to text)
+            let statusColor = isVerifiedActive ? SkyletTheme.activeStatus : (hasStoredKey ? SkyletTheme.statusDelayed : SkyletTheme.secondaryText)
+            let statusTitle = isVerifiedActive ? "API Active" : (hasStoredKey ? "Stored" : "Daily Reference")
+            HStack(spacing: 3) {
+                Text("•")
+                    .font(.system(size: 11, weight: .bold))
+                Text(statusTitle)
+                    .font(.system(size: 10, weight: .semibold))
             }
+            .foregroundStyle(statusColor)
         }
     }
 
@@ -243,18 +247,13 @@ public struct SettingsView: View {
         }
     }
 
-    // MARK: - Default Input Currency Row (Native Apple Menu — Item 11)
+    // MARK: - Input Currency Row (Native Apple Menu — Item 5 & 6)
 
-    private var defaultInputCurrencyRow: some View {
+    private var inputCurrencyRow: some View {
         HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Default")
-                    .font(.system(size: 9, weight: .regular))
-                    .foregroundStyle(Color.white.opacity(0.40))
-                Text("Input Currency :")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.85))
-            }
+            Text("Input Currency :")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.85))
 
             Spacer()
 
@@ -278,7 +277,7 @@ public struct SettingsView: View {
                     Text("\(symbol) \(droplet.defaultInputCurrency.rawValue)")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundStyle(Color.white)
-                    Image(systemName: "chevron.up.chevron.down")
+                    Image(systemName: "chevron.down")
                         .font(.system(size: 8, weight: .semibold))
                         .foregroundStyle(Color.white.opacity(0.60))
                 }
@@ -296,10 +295,11 @@ public struct SettingsView: View {
                 )
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
         }
     }
 
-    // MARK: - Choose Local Currency Row (Native Apple Menu — Item 11)
+    // MARK: - Choose Local Currency Row (Native Apple Menu — Item 5 & 6)
 
     private var chooseLocalCurrencyRow: some View {
         HStack(spacing: 8) {
@@ -329,7 +329,7 @@ public struct SettingsView: View {
                     Text("\(symbol) \(droplet.localTargetCurrency.rawValue)")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundStyle(Color.white)
-                    Image(systemName: "chevron.up.chevron.down")
+                    Image(systemName: "chevron.down")
                         .font(.system(size: 8, weight: .semibold))
                         .foregroundStyle(Color.white.opacity(0.60))
                 }
@@ -347,6 +347,7 @@ public struct SettingsView: View {
                 )
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
         }
     }
 
