@@ -54,6 +54,7 @@ public struct CurrencyView: View {
         .onAppear {
             sourceCurrency = droplet.defaultInputCurrency
             targetCurrency = droplet.localTargetCurrency
+            droplet.verifyAPIKeyInBackground()
             if let existing = droplet.latestConversion {
                 self.conversionResult = existing
                 self.sourceCurrency = existing.sourceCurrency
@@ -99,6 +100,7 @@ public struct CurrencyView: View {
                 Button {
                     withAnimation(SkyletTheme.quickAnimation) {
                         droplet.selectedMode = .settings
+                        droplet.notifyLayoutChanged()
                     }
                 } label: {
                     Image(systemName: "gearshape")
@@ -617,13 +619,14 @@ public struct CurrencyView: View {
 
     private var providerStatusBadge: some View {
         let hasKey = (droplet.keychain.get(key: "twelvedata_api_key") != nil)
-        let isLive = conversionResult?.freshness == .live
-        let statusColor = isLive ? SkyletTheme.activeStatus : (hasKey ? SkyletTheme.statusDelayed : SkyletTheme.secondaryText)
+        let isLive = droplet.isAPIActive || conversionResult?.freshness == .live
+        let statusColor = isLive ? SkyletTheme.activeStatus : (hasKey ? SkyletTheme.statusDelayed : Color.white.opacity(0.50))
         let statusTitle = isLive ? "API Active" : (hasKey ? "Delayed" : "Daily Reference")
 
-        return HStack(spacing: 3) {
-            Text("•")
-                .font(.system(size: 11, weight: .bold))
+        return HStack(spacing: 4) {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 5, height: 5)
             Text(statusTitle)
                 .font(.system(size: 10, weight: .semibold))
         }

@@ -222,3 +222,5 @@ public enum SkyletTheme {
     /// Gentle layout transition
     public static let smoothAnimation: Animation = .easeInOut(duration: 0.22)
 }
+
+public typealias FexlyTheme = SkyletTheme

@@ -1,6 +1,6 @@
 //
 //  SkyletDroplet.swift
-//  Skylet
+//  Fexly
 //
 
 import Combine
@@ -8,12 +8,12 @@ import SwiftUI
 import DroppyKit
 import SkyletCore
 
-/// Skylet: Native DroppyKit utility providing real-time foreign exchange intelligence,
+/// Fexly: Native DroppyKit utility providing real-time foreign exchange intelligence,
 /// live Twelve Data forex rates, honest provenance tracking, and instant INR conversion for macOS.
 @MainActor
-public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
+public final class FexlyDroplet: NSObject, ObservableObject, Droplet {
     /// Must equal `DroppyDropletID` in Info.plist and `id` in `droplet.json`.
-    public nonisolated static let id: DropletID = "skylet"
+    public nonisolated static let id: DropletID = "fexly"
 
     private var host: DropletHost?
     private var cancellables = Set<AnyCancellable>()
@@ -24,11 +24,12 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
     public let historyService: CurrencyHistoryService
     public let keychain: KeychainStoring
 
-    @Published public var selectedMode: SkyletMode = .currency {
+    @Published public var selectedMode: FexlyMode = .currency {
         didSet {
-            host?.shelf.invalidateLayout(for: "skylet")
+            notifyLayoutChanged()
         }
     }
+    @Published public var isAPIActive: Bool = false
     @Published public private(set) var latestConversion: CurrencyConversionResult?
     @Published public var isPinned: Bool = false {
         didSet {
@@ -36,24 +37,33 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
         }
     }
 
-    // Persisted User Preferences
+    public func notifyLayoutChanged() {
+        host?.shelf.invalidateLayout(for: Self.id)
+        host?.shelf.invalidateLayout(for: "skylet")
+    }
+
+    // Persisted User Preferences (Support both Fexly and legacy Skylet keys)
     @Published public var defaultInputCurrency: CurrencyCode {
         didSet {
+            UserDefaults.standard.set(defaultInputCurrency.rawValue, forKey: "fexly_default_input_currency")
             UserDefaults.standard.set(defaultInputCurrency.rawValue, forKey: "skylet_default_input_currency")
         }
     }
     @Published public var localTargetCurrency: CurrencyCode {
         didSet {
+            UserDefaults.standard.set(localTargetCurrency.rawValue, forKey: "fexly_local_target_currency")
             UserDefaults.standard.set(localTargetCurrency.rawValue, forKey: "skylet_local_target_currency")
         }
     }
     @Published public var isGraphEnabled: Bool {
         didSet {
+            UserDefaults.standard.set(isGraphEnabled, forKey: "fexly_graph_enabled")
             UserDefaults.standard.set(isGraphEnabled, forKey: "skylet_graph_enabled")
         }
     }
     @Published public var selectedGraphRange: CurrencyHistoryRange {
         didSet {
+            UserDefaults.standard.set(selectedGraphRange.rawValue, forKey: "fexly_selected_graph_range")
             UserDefaults.standard.set(selectedGraphRange.rawValue, forKey: "skylet_selected_graph_range")
         }
     }
@@ -80,29 +90,57 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
         )
         self.historyService = resolvedHistory
 
-        let savedInput = UserDefaults.standard.string(forKey: "skylet_default_input_currency") ?? "USD"
+        let savedInput = UserDefaults.standard.string(forKey: "fexly_default_input_currency")
+            ?? UserDefaults.standard.string(forKey: "skylet_default_input_currency") ?? "USD"
         self.defaultInputCurrency = CurrencyCode(savedInput) ?? .usd
 
-        let savedTarget = UserDefaults.standard.string(forKey: "skylet_local_target_currency") ?? "INR"
+        let savedTarget = UserDefaults.standard.string(forKey: "fexly_local_target_currency")
+            ?? UserDefaults.standard.string(forKey: "skylet_local_target_currency") ?? "INR"
         self.localTargetCurrency = CurrencyCode(savedTarget) ?? .inr
 
-        if UserDefaults.standard.object(forKey: "skylet_graph_enabled") != nil {
+        if UserDefaults.standard.object(forKey: "fexly_graph_enabled") != nil {
+            self.isGraphEnabled = UserDefaults.standard.bool(forKey: "fexly_graph_enabled")
+        } else if UserDefaults.standard.object(forKey: "skylet_graph_enabled") != nil {
             self.isGraphEnabled = UserDefaults.standard.bool(forKey: "skylet_graph_enabled")
         } else {
             self.isGraphEnabled = true
         }
 
-        let savedRange = UserDefaults.standard.string(forKey: "skylet_selected_graph_range") ?? "1M"
+        let savedRange = UserDefaults.standard.string(forKey: "fexly_selected_graph_range")
+            ?? UserDefaults.standard.string(forKey: "skylet_selected_graph_range") ?? "1M"
         self.selectedGraphRange = CurrencyHistoryRange(rawValue: savedRange) ?? .oneMonth
 
         super.init()
+        verifyAPIKeyInBackground()
+    }
+
+    public func verifyAPIKeyInBackground() {
+        guard let key = keychain.get(key: "twelvedata_api_key"), !key.isEmpty else {
+            self.isAPIActive = false
+            return
+        }
+        Task { [weak self] in
+            guard let self = self else { return }
+            let provider = TwelveDataRateProvider(keychain: self.keychain)
+            do {
+                _ = try await provider.fetchRate(from: .usd, to: .inr)
+                await MainActor.run {
+                    self.isAPIActive = true
+                }
+            } catch {
+                await MainActor.run {
+                    self.isAPIActive = false
+                }
+            }
+        }
     }
 
     // MARK: - Lifecycle
 
     public func activate(host: DropletHost) throws {
         self.host = host
-        host.log.info("Skylet activated — Real-Time FX & Currency Intelligence")
+        host.log.info("Fexly activated — Real-Time FX & Currency Intelligence")
+        verifyAPIKeyInBackground()
         publishAppropriateLiveActivity()
     }
 
@@ -154,13 +192,13 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
 
 // MARK: - ShelfWidgetProviding
 
-extension SkyletDroplet: ShelfWidgetProviding {
+extension FexlyDroplet: ShelfWidgetProviding {
     public var widgetDescriptors: [ShelfWidgetDescriptor] {
-        let cardHeight: CGFloat = (selectedMode == .settings) ? 198 : 160
+        let cardHeight: CGFloat = (selectedMode == .settings) ? 236 : 160
         return [
             ShelfWidgetDescriptor(
-                id: "skylet",
-                title: "Skylet",
+                id: Self.id,
+                title: "Fexly",
                 systemImage: "sparkles",
                 layoutTraits: ShelfWidgetLayoutTraits(
                     preferredSoloWidth: 420,
@@ -169,7 +207,7 @@ extension SkyletDroplet: ShelfWidgetProviding {
                 ),
                 searchKeywords: [
                     "currency", "converter", "inr", "rupee",
-                    "forex", "exchange", "rates", "twelve data"
+                    "forex", "exchange", "rates", "twelve data", "fexly"
                 ]
             )
         ]
@@ -182,7 +220,7 @@ extension SkyletDroplet: ShelfWidgetProviding {
 
 // MARK: - LiveActivityProviding
 
-extension SkyletDroplet: LiveActivityProviding {
+extension FexlyDroplet: LiveActivityProviding {
     public var liveActivityState: AnyPublisher<LiveActivityState?, Never> {
         activitySubject.eraseToAnyPublisher()
     }
@@ -195,6 +233,7 @@ extension SkyletDroplet: LiveActivityProviding {
                         .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                         .truncationMode(.tail)
                         .minimumScaleFactor(0.85)
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
@@ -214,6 +253,7 @@ extension SkyletDroplet: LiveActivityProviding {
                         .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                         .truncationMode(.tail)
                         .minimumScaleFactor(0.85)
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
@@ -232,14 +272,16 @@ extension SkyletDroplet: LiveActivityProviding {
 
 // MARK: - SettingsPaneProviding
 
-extension SkyletDroplet: SettingsPaneProviding {
+extension FexlyDroplet: SettingsPaneProviding {
     public func makeSettingsPane(context: SettingsPaneContext) -> AnyView {
         AnyView(SettingsView(droplet: self))
     }
 
     public var settingsSearchEntries: [SettingsSearchEntry] {
         [
-            SettingsSearchEntry(title: "Twelve Data API Key", keywords: ["currency", "twelve data", "forex", "key", "inr"])
+            SettingsSearchEntry(title: "Twelve Data API Key", keywords: ["currency", "twelve data", "forex", "key", "inr", "fexly"])
         ]
     }
 }
+
+public typealias SkyletDroplet = FexlyDroplet

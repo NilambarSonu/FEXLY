@@ -53,8 +53,13 @@ jobs:
 
       - name: Verify Universal Mach-O Slices
         run: |
-          file .build/Skylet.droplet/Contents/MacOS/Skylet
-          lipo -info .build/Skylet.droplet/Contents/MacOS/Skylet
+          if [ -d ".build/Fexly.droplet" ]; then
+            file .build/Fexly.droplet/Contents/MacOS/*
+            lipo -info .build/Fexly.droplet/Contents/MacOS/*
+          elif [ -d ".build/Skylet.droplet" ]; then
+            file .build/Skylet.droplet/Contents/MacOS/*
+            lipo -info .build/Skylet.droplet/Contents/MacOS/*
+          fi
 
       - name: Run DroppyKit Harness Checks
         run: |
@@ -63,18 +68,22 @@ jobs:
       - name: Package Release Bundle & Generate Checksum
         run: |
           cd .build
-          zip -r -9 Skylet.droplet.zip Skylet.droplet
-          shasum -a 256 Skylet.droplet.zip > Skylet.droplet.zip.sha256
-          cat Skylet.droplet.zip.sha256
-          echo "SHA256=$(cat Skylet.droplet.zip.sha256 | awk '{print $1}')" >> $GITHUB_ENV
+          DROPLET_DIR="Fexly.droplet"
+          [ -d "$DROPLET_DIR" ] || DROPLET_DIR="Skylet.droplet"
+          # Strip debug symbols to keep zip under 1.2MB
+          strip -x "$DROPLET_DIR/Contents/MacOS/"* || true
+          zip -r -9 Fexly.droplet.zip "$DROPLET_DIR"
+          shasum -a 256 Fexly.droplet.zip > Fexly.droplet.zip.sha256
+          cat Fexly.droplet.zip.sha256
+          echo "SHA256=$(cat Fexly.droplet.zip.sha256 | awk '{print $1}')" >> $GITHUB_ENV
 
       - name: Upload Release Archive
         uses: actions/upload-artifact@v4
         with:
-          name: Skylet.droplet
+          name: Fexly.droplet
           path: |
-            .build/Skylet.droplet.zip
-            .build/Skylet.droplet.zip.sha256
+            .build/Fexly.droplet.zip
+            .build/Fexly.droplet.zip.sha256
 
       - name: Upload Harness Screenshots and Reports
         uses: actions/upload-artifact@v4

@@ -1,9 +1,9 @@
 {
-  "id": "skylet",
-  "name": "Skylet",
+  "id": "fexly",
+  "name": "Fexly",
   "version": "1.3.0",
   "summary": "Real-time currency converter & historical FX graphs",
-  "description": "Skylet brings real-time foreign exchange conversion to Indian Rupees (INR) and world currencies directly to Droppy's Dynamic Island and shelf.\n\nConvert international prices instantly with live Twelve Data Forex rates, interactive historical trend charts (1D to Max), and Decimal-safe financial precision.",
+  "description": "Fexly brings real-time foreign exchange conversion to Indian Rupees (INR) and world currencies directly to Droppy's Dynamic Island and shelf.\n\nConvert international prices instantly with live Twelve Data Forex rates, interactive historical trend charts (1D to Max), and Decimal-safe financial precision.",
   "category": "productivity",
   "kit": {
     "abi": 1,
@@ -19,21 +19,22 @@
     "live-activity",
     "settings-pane"
   ],
-  "icon": "Skylet.icon",
+  "icon": "Fexly.icon",
   "creator": {
     "name": "Nilambar Sonu",
     "kind": "community",
-    "url": "https://github.com/NilambarSonu/SKYLET",
+    "url": "https://github.com/NilambarSonu/Fexly",
     "avatar": "Creator.png"
   },
   "source": {
-    "repository": "https://github.com/NilambarSonu/SKYLET",
+    "repository": "https://github.com/NilambarSonu/Fexly",
     "license": "MIT"
   },
   "screenshots": [
     "currency_main.png"
   ],
   "keywords": [
+    "fexly",
     "currency",
     "converter",
     "inr",
@@ -44,4 +45,3 @@
     "finance"
   ]
 }
-

@@ -1,6 +1,6 @@
 //
 //  SkyletRootView.swift
-//  Skylet
+//  Fexly
 //
 //  Figma-faithful root container encasing Currency and Settings views
 //  within the Droppy host container geometry.
@@ -9,12 +9,14 @@
 import SwiftUI
 import DroppyKit
 
-public enum SkyletMode: String, CaseIterable, Identifiable {
+public enum FexlyMode: String, CaseIterable, Identifiable {
     case currency = "Currency"
     case settings = "Settings"
 
     public var id: String { rawValue }
 }
+
+public typealias SkyletMode = FexlyMode
 
 public struct SkyletRootView: View {
     @ObservedObject var droplet: SkyletDroplet
@@ -39,3 +41,5 @@ public struct SkyletRootView: View {
         .animation(SkyletTheme.quickAnimation, value: droplet.selectedMode)
     }
 }
+
+public typealias FexlyRootView = SkyletRootView

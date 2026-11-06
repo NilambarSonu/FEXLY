@@ -14,12 +14,14 @@ if let localPath = ProcessInfo.processInfo.environment["DROPPYKIT_PATH"], !local
 }
 
 let package = Package(
-    name: "Skylet",
+    name: "Fexly",
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "SkyletCore", targets: ["SkyletCore"]),
+        .library(name: "FexlyCore", targets: ["SkyletCore"]),
         // A droplet is a loadable bundle, so its product is a dynamic library.
-        .library(name: "Skylet", type: .dynamic, targets: ["Skylet"])
+        .library(name: "Skylet", type: .dynamic, targets: ["Skylet"]),
+        .library(name: "Fexly", type: .dynamic, targets: ["Skylet"])
     ],
     dependencies: [
         droppyKitDependency

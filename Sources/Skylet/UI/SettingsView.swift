@@ -30,7 +30,7 @@ public struct SettingsView: View {
             headerRow
 
             // Settings Form Card (Liquid Glass Tile)
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 // 1. API Key Row
                 apiKeyRow
 
@@ -38,7 +38,7 @@ public struct SettingsView: View {
                 Text("Default")
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.45))
-                    .padding(.top, 2)
+                    .padding(.top, 1)
 
                 Divider()
                     .background(Color.white.opacity(0.10))
@@ -55,7 +55,7 @@ public struct SettingsView: View {
                 // 4. Graph Toggle Row (Item 4: Fully visible with smooth expanded height)
                 graphToggleRow
             }
-            .padding(10)
+            .padding(9)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color.white.opacity(0.05))
@@ -83,6 +83,7 @@ public struct SettingsView: View {
             Button {
                 withAnimation(SkyletTheme.quickAnimation) {
                     droplet.selectedMode = .currency
+                    droplet.notifyLayoutChanged()
                 }
             } label: {
                 HStack(spacing: 4) {
@@ -113,12 +114,14 @@ public struct SettingsView: View {
 
             Spacer()
 
-            // Status Indicator (Item 7: Single crisp dot close to text)
-            let statusColor = isVerifiedActive ? SkyletTheme.activeStatus : (hasStoredKey ? SkyletTheme.statusDelayed : SkyletTheme.secondaryText)
-            let statusTitle = isVerifiedActive ? "API Active" : (hasStoredKey ? "Stored" : "Daily Reference")
-            HStack(spacing: 3) {
-                Text("•")
-                    .font(.system(size: 11, weight: .bold))
+            // Status Indicator (Single crisp dot close to text)
+            let isLive = isVerifiedActive || droplet.isAPIActive
+            let statusColor = isLive ? SkyletTheme.activeStatus : (hasStoredKey ? SkyletTheme.statusDelayed : Color.white.opacity(0.50))
+            let statusTitle = isLive ? "API Active" : (hasStoredKey ? "Stored" : "Daily Reference")
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 5, height: 5)
                 Text(statusTitle)
                     .font(.system(size: 10, weight: .semibold))
             }
@@ -240,8 +243,8 @@ public struct SettingsView: View {
 
             if let msg = statusFeedback {
                 Text(msg)
-                    .font(.system(size: 9))
-                    .foregroundStyle(SkyletTheme.skyBlue)
+                    .font(.system(size: 8.5, weight: .medium))
+                    .foregroundStyle(isVerifiedActive ? SkyletTheme.activeStatus : SkyletTheme.statusError)
                     .padding(.leading, 58)
             }
         }
@@ -407,11 +410,13 @@ public struct SettingsView: View {
             _ = try await provider.fetchRate(from: .usd, to: .inr)
             await MainActor.run {
                 self.isVerifiedActive = true
+                self.droplet.isAPIActive = true
                 self.statusFeedback = "API Active & Verified."
             }
         } catch {
             await MainActor.run {
                 self.isVerifiedActive = false
+                self.droplet.isAPIActive = false
                 self.statusFeedback = "Key verification failed."
             }
         }

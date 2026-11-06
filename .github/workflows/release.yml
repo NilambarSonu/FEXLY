@@ -88,8 +88,13 @@ jobs:
 
       - name: Verify Universal Mach-O Slices
         run: |
-          file .build/Skylet.droplet/Contents/MacOS/Skylet
-          lipo -info .build/Skylet.droplet/Contents/MacOS/Skylet
+          if [ -d ".build/Fexly.droplet" ]; then
+            file .build/Fexly.droplet/Contents/MacOS/*
+            lipo -info .build/Fexly.droplet/Contents/MacOS/*
+          elif [ -d ".build/Skylet.droplet" ]; then
+            file .build/Skylet.droplet/Contents/MacOS/*
+            lipo -info .build/Skylet.droplet/Contents/MacOS/*
+          fi
 
       - name: Run DroppyKit Harness Checks
         run: |
@@ -98,18 +103,22 @@ jobs:
       - name: Package Release Bundle & Generate Checksum
         run: |
           cd .build
-          zip -r -9 Skylet.droplet.zip Skylet.droplet
-          shasum -a 256 Skylet.droplet.zip > Skylet.droplet.zip.sha256
-          cat Skylet.droplet.zip.sha256
-          echo "RELEASE_SHA256=$(cat Skylet.droplet.zip.sha256 | awk '{print $1}')" >> $GITHUB_ENV
+          DROPLET_DIR="Fexly.droplet"
+          [ -d "$DROPLET_DIR" ] || DROPLET_DIR="Skylet.droplet"
+          # Strip debug symbols to keep zip under 1.2MB
+          strip -x "$DROPLET_DIR/Contents/MacOS/"* || true
+          zip -r -9 Fexly.droplet.zip "$DROPLET_DIR"
+          shasum -a 256 Fexly.droplet.zip > Fexly.droplet.zip.sha256
+          cat Fexly.droplet.zip.sha256
+          echo "RELEASE_SHA256=$(cat Fexly.droplet.zip.sha256 | awk '{print $1}')" >> $GITHUB_ENV
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            .build/Skylet.droplet.zip
-            .build/Skylet.droplet.zip.sha256
-          name: SKYLET ${{ github.ref_name }} — Real-Time FX & Historical Graph Intelligence
+            .build/Fexly.droplet.zip
+            .build/Fexly.droplet.zip.sha256
+          name: Fexly ${{ github.ref_name }} — Real-Time FX & Historical Graph Intelligence
           draft: false
           prerelease: false
           generate_release_notes: true

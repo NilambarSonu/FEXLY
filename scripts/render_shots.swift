@@ -700,7 +700,7 @@ public struct ShotAppIconView: View {
 
             HStack(spacing: 30) {
                 // 128px icon
-                if let markImage = NSImage(contentsOfFile: "Skylet.icon/Assets/mark.png") {
+                if let markImage = NSImage(contentsOfFile: "Fexly.icon/Assets/mark.png") ?? NSImage(contentsOfFile: "Skylet.icon/Assets/mark.png") {
                     VStack(spacing: 6) {
                         Image(nsImage: markImage)
                             .resizable()

@@ -1,22 +1,22 @@
 # Release & Update Guide
 
-This document describes how Skylet is built, validated, packaged, released, and updated.
+This document describes how Fexly is built, validated, packaged, released, and updated.
 
 ---
 
 ## 1. Release Architecture
 
-Skylet produces a universal native macOS droplet bundle (`Skylet.droplet`) compatible with DroppyKit ABI 1.
+Fexly produces a universal native macOS droplet bundle (`Fexly.droplet`) compatible with DroppyKit ABI 1.
 
 ```
-Skylet.droplet/
+Fexly.droplet/
 └── Contents/
-    ├── Info.plist              # Bundle metadata (DroppyDropletID: skylet)
+    ├── Info.plist              # Bundle metadata (DroppyDropletID: fexly)
     ├── MacOS/
-    │   └── Skylet              # Mach-O universal binary (arm64 + x86_64)
+    │   └── Fexly               # Mach-O universal binary (arm64 + x86_64)
     └── Resources/
         ├── droplet.json        # Droppy manifest
-        ├── Skylet.icon         # Multi-resolution icon set
+        ├── Fexly.icon          # Multi-resolution icon set
         └── Creator.png         # Author avatar
 ```
 
