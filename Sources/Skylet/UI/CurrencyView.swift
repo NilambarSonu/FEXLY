@@ -224,8 +224,13 @@ public struct CurrencyView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
 
-                    convertedAmountCard
-                        .frame(width: droplet.isGraphEnabled ? 160 : .infinity, maxHeight: .infinity)
+                    if droplet.isGraphEnabled {
+                        convertedAmountCard
+                            .frame(width: 160, maxHeight: .infinity)
+                    } else {
+                        convertedAmountCard
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 }
             }
         }
