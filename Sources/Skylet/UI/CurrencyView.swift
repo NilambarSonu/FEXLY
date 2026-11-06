@@ -226,7 +226,8 @@ public struct CurrencyView: View {
 
                     if droplet.isGraphEnabled {
                         convertedAmountCard
-                            .frame(width: 160, maxHeight: .infinity)
+                            .frame(width: 160)
+                            .frame(maxHeight: .infinity)
                     } else {
                         convertedAmountCard
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
