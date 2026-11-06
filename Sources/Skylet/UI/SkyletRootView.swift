@@ -26,33 +26,16 @@ public struct SkyletRootView: View {
     }
 
     public var body: some View {
-        ZStack {
-            // Apple-grade Liquid Glass Backdrop
-            Color.black.opacity(0.70)
-                .background(.ultraThinMaterial)
-
-            // Subtle interior frosted highlight
-            SkyletTheme.shelfShape(usesIslandCurvature: context.usesIslandCurvature)
-                .fill(Color.white.opacity(0.02))
-
-            // Active View
-            Group {
-                switch droplet.selectedMode {
-                case .currency:
-                    CurrencyView(droplet: droplet, isCompact: context.isCompact)
-                case .settings:
-                    SettingsView(droplet: droplet)
-                }
+        Group {
+            switch droplet.selectedMode {
+            case .currency:
+                CurrencyView(droplet: droplet, isCompact: context.isCompact)
+            case .settings:
+                SettingsView(droplet: droplet)
             }
-            .padding(context.contentInsets)
-            .transition(.opacity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipShape(SkyletTheme.shelfShape(usesIslandCurvature: context.usesIslandCurvature))
-        .overlay(
-            SkyletTheme.shelfShape(usesIslandCurvature: context.usesIslandCurvature)
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
-        )
+        .padding(context.contentInsets)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(SkyletTheme.quickAnimation, value: droplet.selectedMode)
     }
 }

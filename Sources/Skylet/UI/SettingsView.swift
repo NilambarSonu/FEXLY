@@ -2,7 +2,7 @@
 //  SettingsView.swift
 //  Skylet
 //
-//  Figma-faithful Settings composition matching the user's design specification.
+//  Apple Liquid Glass Settings interface matching native macOS guidelines.
 //
 
 import SwiftUI
@@ -18,8 +18,6 @@ public struct SettingsView: View {
     @State private var hasStoredKey: Bool = false
     @State private var isVerifiedActive: Bool = false
     @State private var showInfoPopover: Bool = false
-    @State private var showDefaultPicker: Bool = false
-    @State private var showLocalPicker: Bool = false
     @State private var statusFeedback: String? = nil
 
     public init(droplet: SkyletDroplet) {
@@ -27,79 +25,49 @@ public struct SettingsView: View {
     }
 
     public var body: some View {
-        ZStack {
-            VStack(alignment: .leading, spacing: 10) {
-                // Header Row
-                headerRow
+        VStack(alignment: .leading, spacing: 8) {
+            // Header Row
+            headerRow
 
-                // Settings Form Card
-                VStack(alignment: .leading, spacing: 8) {
-                    // 1. API Key Row
-                    apiKeyRow
+            // Settings Form Card (Liquid Glass Tile)
+            VStack(alignment: .leading, spacing: 7) {
+                // 1. API Key Row
+                apiKeyRow
 
-                    // 2. Default Input Currency Row
-                    defaultInputCurrencyRow
+                Divider()
+                    .background(Color.white.opacity(0.08))
 
-                    // 3. Choose Your Local Currency Row
-                    chooseLocalCurrencyRow
+                // 2. Default Input Currency Row (Native Apple Menu Dropdown)
+                defaultInputCurrencyRow
 
-                    // 4. Graph Toggle Row
-                    graphToggleRow
-                }
-                .padding(10)
-                .background(Color.white.opacity(0.04))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                Divider()
+                    .background(Color.white.opacity(0.08))
 
-                // Done / Back Button
-                HStack {
-                    Spacer()
-                    Button {
-                        withAnimation(SkyletTheme.quickAnimation) {
-                            droplet.selectedMode = .currency
-                        }
-                    } label: {
-                        Text("Done")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color.black)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 4)
-                            .background(SkyletTheme.inputAccent)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    Spacer()
-                }
+                // 3. Choose Your Local Currency Row (Native Apple Menu Dropdown)
+                chooseLocalCurrencyRow
 
-                Spacer(minLength: 0)
+                Divider()
+                    .background(Color.white.opacity(0.08))
+
+                // 4. Graph Toggle Row
+                graphToggleRow
             }
-            .padding(.horizontal, 8)
-            .padding(.top, 4)
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.05))
+                    .background(.ultraThinMaterial)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+            )
 
-            // Currency Pickers Overlay
-            if showDefaultPicker {
-                CurrencySelectorView(
-                    selectedCurrency: $droplet.defaultInputCurrency,
-                    onSelect: { code in
-                        droplet.defaultInputCurrency = code
-                        showDefaultPicker = false
-                    },
-                    onDismiss: { showDefaultPicker = false }
-                )
-                .zIndex(20)
-            }
-
-            if showLocalPicker {
-                CurrencySelectorView(
-                    selectedCurrency: $droplet.localTargetCurrency,
-                    onSelect: { code in
-                        droplet.localTargetCurrency = code
-                        showLocalPicker = false
-                    },
-                    onDismiss: { showLocalPicker = false }
-                )
-                .zIndex(20)
-            }
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 4)
+        .padding(.top, 2)
         .onAppear {
             loadStoredKey()
         }
@@ -114,25 +82,35 @@ public struct SettingsView: View {
                     droplet.selectedMode = .currency
                 }
             } label: {
-                HStack(spacing: 3) {
+                HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 10.5, weight: .bold))
                     Text("Back")
                         .font(.system(size: 11, weight: .medium))
                 }
-                .foregroundStyle(SkyletTheme.secondaryText)
+                .foregroundStyle(Color.white.opacity(0.85))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.white.opacity(0.08))
+                        .background(.ultraThinMaterial)
+                )
+                .clipShape(Capsule(style: .continuous))
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .help("Back to Currency Converter")
 
             Spacer()
 
             Text("Settings")
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 13, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.white)
 
             Spacer()
 
-            // Status Indicator (Figma top-right)
+            // Status Indicator
             HStack(spacing: 4) {
                 Circle()
                     .fill(isVerifiedActive ? SkyletTheme.activeStatus : Color.white.opacity(0.40))
@@ -144,7 +122,7 @@ public struct SettingsView: View {
         }
     }
 
-    // MARK: - API Key Row
+    // MARK: - API Key Row with 3-Step Guide Popover (Item 12)
 
     private var apiKeyRow: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -172,21 +150,17 @@ public struct SettingsView: View {
                     Button {
                         isRevealed.toggle()
                     } label: {
-                        if isRevealed {
-                            SkyletIcon.EyeSlashShape()
-                                .stroke(Color.white.opacity(0.80), lineWidth: 1.5)
-                                .frame(width: 13, height: 13)
-                        } else {
-                            SkyletIcon.EyeShape()
-                                .stroke(Color.white.opacity(0.80), lineWidth: 1.5)
-                                .frame(width: 13, height: 13)
-                        }
+                        Image(systemName: isRevealed ? "eye.slash" : "eye")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.white.opacity(0.75))
+                            .frame(width: 16, height: 16)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help(isRevealed ? "Hide key" : "Show key")
                 }
                 .padding(.horizontal, 8)
-                .padding(.vertical, 4.5)
+                .padding(.vertical, 4)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(Color.white.opacity(0.10))
@@ -198,44 +172,84 @@ public struct SettingsView: View {
                         .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
                 )
 
-                // Info Button
+                // Info Button with 3-Step Bullet Guide Popover
                 Button {
                     showInfoPopover.toggle()
                 } label: {
-                    SkyletIcon.InfoBubbleShape()
-                        .stroke(Color.white.opacity(0.60), lineWidth: 1.5)
-                        .frame(width: 14, height: 14)
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.70))
+                        .frame(width: 20, height: 20)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .popover(isPresented: $showInfoPopover) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Twelve Data Forex API Key")
-                            .font(.system(size: 11, weight: .bold))
-                        Text("Enables genuine real-time USD/INR quotes and intraday charts. Stored securely in macOS Keychain.\n\nGet a free key at twelvedata.com/forex.")
-                            .font(.system(size: 10))
-                            .foregroundStyle(Color.secondary)
+                .help("Click for 3-step guide to get a free Twelve Data API key")
+                .popover(isPresented: $showInfoPopover, arrowEdge: .trailing) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "key.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(SkyletTheme.skyBlue)
+                            Text("How to Get a Free API Key")
+                                .font(.system(size: 11.5, weight: .bold))
+                                .foregroundStyle(Color.white)
+                        }
+
+                        VStack(alignment: .leading, spacing: 5) {
+                            HStack(alignment: .top, spacing: 6) {
+                                Text("1.")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(SkyletTheme.skyBlue)
+                                Text("Go to **twelvedata.com/forex** and create a free account (no credit card needed).")
+                                    .font(.system(size: 9.5))
+                                    .foregroundStyle(Color.white.opacity(0.85))
+                            }
+                            HStack(alignment: .top, spacing: 6) {
+                                Text("2.")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(SkyletTheme.skyBlue)
+                                Text("Copy your personal API Key from the Twelve Data Dashboard.")
+                                    .font(.system(size: 9.5))
+                                    .foregroundStyle(Color.white.opacity(0.85))
+                            }
+                            HStack(alignment: .top, spacing: 6) {
+                                Text("3.")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(SkyletTheme.skyBlue)
+                                Text("Paste it into the API key field and press Return to verify.")
+                                    .font(.system(size: 9.5))
+                                    .foregroundStyle(Color.white.opacity(0.85))
+                            }
+                        }
+
+                        Divider()
+                            .background(Color.white.opacity(0.15))
+
+                        Text("• Unlocks genuine live Forex rates & intraday 1D/5D charts.\n• 8 requests/min free tier is plenty for Skylet.")
+                            .font(.system(size: 8.5))
+                            .foregroundStyle(Color.white.opacity(0.55))
                     }
-                    .padding(10)
-                    .frame(width: 200)
+                    .padding(12)
+                    .frame(width: 250)
                 }
             }
 
             if let msg = statusFeedback {
                 Text(msg)
-                    .font(.system(size: 9.5))
+                    .font(.system(size: 9))
                     .foregroundStyle(SkyletTheme.skyBlue)
                     .padding(.leading, 58)
             }
         }
     }
 
-    // MARK: - Default Input Currency Row
+    // MARK: - Default Input Currency Row (Native Apple Menu — Item 11)
 
     private var defaultInputCurrencyRow: some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Default")
-                    .font(.system(size: 9.5, weight: .regular))
+                    .font(.system(size: 9, weight: .regular))
                     .foregroundStyle(Color.white.opacity(0.40))
                 Text("Input Currency :")
                     .font(.system(size: 11, weight: .medium))
@@ -244,31 +258,48 @@ public struct SettingsView: View {
 
             Spacer()
 
-            Button {
-                showDefaultPicker = true
+            Menu {
+                ForEach(CurrencyCode.allCases, id: \.self) { code in
+                    Button {
+                        droplet.defaultInputCurrency = code
+                        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                    } label: {
+                        HStack {
+                            Text("\(CurrencyMetadata.symbol(for: code))  \(code.rawValue) — \(CurrencyMetadata.name(for: code))")
+                            if droplet.defaultInputCurrency == code {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
             } label: {
                 let symbol = CurrencyMetadata.symbol(for: droplet.defaultInputCurrency)
-                Text("\(symbol) \(droplet.defaultInputCurrency.rawValue)")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color.white)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 3.5)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.white.opacity(0.16))
-                            .background(.ultraThinMaterial)
-                    )
-                    .clipShape(Capsule(style: .continuous))
-                    .overlay(
-                        Capsule(style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
-                    )
+                HStack(spacing: 4) {
+                    Text("\(symbol) \(droplet.defaultInputCurrency.rawValue)")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color.white)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.60))
+                }
+                .padding(.horizontal, 9)
+                .padding(.vertical, 3.5)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.white.opacity(0.16))
+                        .background(.ultraThinMaterial)
+                )
+                .clipShape(Capsule(style: .continuous))
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                )
             }
-            .buttonStyle(.plain)
+            .menuStyle(.borderlessButton)
         }
     }
 
-    // MARK: - Choose Local Currency Row
+    // MARK: - Choose Local Currency Row (Native Apple Menu — Item 11)
 
     private var chooseLocalCurrencyRow: some View {
         HStack(spacing: 8) {
@@ -278,31 +309,48 @@ public struct SettingsView: View {
 
             Spacer()
 
-            Button {
-                showLocalPicker = true
+            Menu {
+                ForEach(CurrencyCode.allCases, id: \.self) { code in
+                    Button {
+                        droplet.localTargetCurrency = code
+                        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                    } label: {
+                        HStack {
+                            Text("\(CurrencyMetadata.symbol(for: code))  \(code.rawValue) — \(CurrencyMetadata.name(for: code))")
+                            if droplet.localTargetCurrency == code {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
             } label: {
                 let symbol = CurrencyMetadata.symbol(for: droplet.localTargetCurrency)
-                Text("\(symbol) \(droplet.localTargetCurrency.rawValue)")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color.white)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 3.5)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.white.opacity(0.16))
-                            .background(.ultraThinMaterial)
-                    )
-                    .clipShape(Capsule(style: .continuous))
-                    .overlay(
-                        Capsule(style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
-                    )
+                HStack(spacing: 4) {
+                    Text("\(symbol) \(droplet.localTargetCurrency.rawValue)")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color.white)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.60))
+                }
+                .padding(.horizontal, 9)
+                .padding(.vertical, 3.5)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.white.opacity(0.16))
+                        .background(.ultraThinMaterial)
+                )
+                .clipShape(Capsule(style: .continuous))
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                )
             }
-            .buttonStyle(.plain)
+            .menuStyle(.borderlessButton)
         }
     }
 
-    // MARK: - Graph Toggle Row
+    // MARK: - Graph Toggle Row (Item 8: Fits without bottom cutoff)
 
     private var graphToggleRow: some View {
         HStack(spacing: 8) {
@@ -315,7 +363,7 @@ public struct SettingsView: View {
             Toggle("", isOn: $droplet.isGraphEnabled)
                 .toggleStyle(SwitchToggleStyle(tint: SkyletTheme.skyBlue))
                 .labelsHidden()
-                .scaleEffect(0.75)
+                .scaleEffect(0.72)
         }
     }
 
@@ -325,7 +373,6 @@ public struct SettingsView: View {
         if let key = droplet.keychain.get(key: "twelvedata_api_key"), !key.isEmpty {
             self.apiKeyInput = key
             self.hasStoredKey = true
-            // Test connection to verify API Active status
             Task {
                 await verifyKey(key)
             }

@@ -2,8 +2,8 @@
 //  CurrencyView.swift
 //  Skylet
 //
-//  Figma-faithful currency conversion interface supporting input state (Screen A)
-//  and conversion result state (Screen B) with historical FX charts.
+//  Apple Liquid Glass currency conversion interface supporting input state (Screen A)
+//  and editable conversion result state (Screen B) with historical FX charts.
 //
 
 import SwiftUI
@@ -16,20 +16,19 @@ public struct CurrencyView: View {
     let isCompact: Bool
 
     @State private var inputText: String = ""
+    @State private var editableAmountText: String = "100.00"
     @State private var sourceCurrency: CurrencyCode = .usd
     @State private var targetCurrency: CurrencyCode = .inr
     @State private var conversionResult: CurrencyConversionResult?
     @State private var isShowingResult: Bool = false
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
-    @State private var isEditingResultAmount: Bool = false
-    @State private var isRotating: Double = 0
+    @State private var refreshSpinAngle: Double = 0
     @State private var copiedConfirmation: Bool = false
+    @State private var isTargetedDefault: Bool = false
+    @State private var isTargetedLocal: Bool = false
     @FocusState private var isSearchFocused: Bool
-
-    // Quick Currency Shortcuts
-    private let topShortcuts: [CurrencyCode] = [.usd, .inr, .eur, .gbp, .aed]
-    private let bottomShortcuts: [CurrencyCode] = [.cad, .aud, .sgd, .jpy, .chf]
+    @FocusState private var isAmountFocused: Bool
 
     public init(droplet: SkyletDroplet, isCompact: Bool) {
         self.droplet = droplet
@@ -50,15 +49,44 @@ public struct CurrencyView: View {
             targetCurrency = droplet.localTargetCurrency
             if let existing = droplet.latestConversion {
                 self.conversionResult = existing
+                self.sourceCurrency = existing.sourceCurrency
+                self.targetCurrency = existing.targetCurrency
+                self.editableAmountText = "\(existing.sourceAmount)"
                 self.isShowingResult = true
             }
         }
     }
 
+    // MARK: - Dynamic Shortcut Currency Layout
+    // Row 1: Card 0 = Default Currency, Card 1 = Local Currency, followed by top world currencies
+    // Row 2: Remaining popular currencies
+    private var shortcutRows: ([CurrencyCode], [CurrencyCode]) {
+        let def = droplet.defaultInputCurrency
+        let loc = droplet.localTargetCurrency
+
+        let pool: [CurrencyCode] = [.usd, .inr, .eur, .gbp, .aed, .cad, .aud, .sgd, .jpy, .chf]
+        var remaining = pool.filter { $0 != def && $0 != loc }
+
+        var row1: [CurrencyCode] = [def, loc]
+        while row1.count < 5 && !remaining.isEmpty {
+            row1.append(remaining.removeFirst())
+        }
+
+        var row2: [CurrencyCode] = []
+        while row2.count < 5 && !remaining.isEmpty {
+            row2.append(remaining.removeFirst())
+        }
+        for c in CurrencyCode.allCases where !row1.contains(c) && !row2.contains(c) && row2.count < 5 {
+            row2.append(c)
+        }
+
+        return (row1, row2)
+    }
+
     // MARK: - Screen A: Input State View
 
     private var inputStateView: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             // Header: Settings Icon & API Active Status
             HStack {
                 Button {
@@ -66,9 +94,21 @@ public struct CurrencyView: View {
                         droplet.selectedMode = .settings
                     }
                 } label: {
-                    SkyletIcon.SettingsShape()
-                        .stroke(Color.white.opacity(0.85), lineWidth: 1.5)
-                        .frame(width: 15, height: 15)
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 11.5, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.85))
+                        .frame(width: 24, height: 24)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.10))
+                                .background(.ultraThinMaterial)
+                        )
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
+                        )
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help("Open Skylet Settings")
@@ -77,7 +117,7 @@ public struct CurrencyView: View {
 
                 providerStatusBadge
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, 2)
 
             // Large Apple Liquid Glass Search Capsule
             HStack(spacing: 8) {
@@ -93,9 +133,11 @@ public struct CurrencyView: View {
                 Button {
                     submitInput()
                 } label: {
-                    SkyletIcon.SearchShape()
-                        .stroke(isSearchFocused ? Color.white : Color.white.opacity(0.65), lineWidth: 1.8)
-                        .frame(width: 16, height: 16)
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(isSearchFocused ? Color.white : Color.white.opacity(0.65))
+                        .frame(width: 20, height: 20)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -112,16 +154,17 @@ public struct CurrencyView: View {
                     .strokeBorder(isSearchFocused ? SkyletTheme.skyBlue.opacity(0.60) : Color.white.opacity(0.16), lineWidth: 0.5)
             )
 
-            // Quick Currency Shortcut Chips
+            // Quick Currency Shortcut Chips (Draggable & Drop Targets)
+            let (row1, row2) = shortcutRows
             VStack(spacing: 6) {
                 HStack(spacing: 6) {
-                    ForEach(topShortcuts, id: \.self) { code in
-                        quickCurrencyChip(code: code)
+                    ForEach(Array(row1.enumerated()), id: \.element) { index, code in
+                        quickCurrencyChip(code: code, isFirstRowLead: (index == 0), isFirstRowSecond: (index == 1))
                     }
                 }
                 HStack(spacing: 6) {
-                    ForEach(bottomShortcuts, id: \.self) { code in
-                        quickCurrencyChip(code: code)
+                    ForEach(row2, id: \.self) { code in
+                        quickCurrencyChip(code: code, isFirstRowLead: false, isFirstRowSecond: false)
                     }
                 }
             }
@@ -135,52 +178,102 @@ public struct CurrencyView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 6)
-        .padding(.top, 4)
+        .padding(.horizontal, 2)
+        .padding(.top, 2)
     }
 
     // MARK: - Screen B: Result State View
 
     private var resultStateView: some View {
         VStack(spacing: 8) {
-            // Upper Row: Amount Pill (Left) & Rate Formula / Status (Right)
-            HStack(alignment: .center, spacing: 10) {
-                // Source Amount Pill in Apple Liquid Glass
-                HStack(spacing: 6) {
-                    let sourceFormatted = CurrencyFormatter.format(
-                        amount: conversionResult?.sourceAmount ?? 0,
-                        currency: conversionResult?.sourceCurrency ?? sourceCurrency
-                    )
+            // Upper Row: Back Button (Left), Source Amount Capsule with Dropdown, Rate Formula, Pin Icon & Status (Right)
+            HStack(alignment: .center, spacing: 8) {
+                // Back Button (Item 7)
+                Button {
+                    withAnimation(SkyletTheme.quickAnimation) {
+                        isShowingResult = false
+                    }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.white.opacity(0.90))
+                        .frame(width: 24, height: 24)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.10))
+                                .background(.ultraThinMaterial)
+                        )
+                        .clipShape(Circle())
+                        .overlay(Circle().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Back to Currency Input")
 
-                    Button {
-                        withAnimation(SkyletTheme.quickAnimation) {
-                            self.inputText = "\(conversionResult?.sourceAmount ?? 0) \(conversionResult?.sourceCurrency.rawValue ?? "")"
-                            self.isShowingResult = false
+                // Source Amount Capsule: [ Dropdown v | Editable TextField | Refresh Spin ]
+                HStack(spacing: 6) {
+                    // Currency Dropdown Menu (Item 4)
+                    Menu {
+                        ForEach(CurrencyCode.allCases, id: \.self) { c in
+                            Button {
+                                sourceCurrency = c
+                                recalculateWithCurrentInput()
+                            } label: {
+                                HStack {
+                                    Text("\(CurrencyMetadata.symbol(for: c))  \(c.rawValue) — \(CurrencyMetadata.name(for: c))")
+                                    if sourceCurrency == c { Image(systemName: "checkmark") }
+                                }
+                            }
                         }
                     } label: {
-                        Text(sourceFormatted)
-                            .font(.system(size: 14.5, weight: .bold, design: .rounded))
-                            .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+                        HStack(spacing: 2) {
+                            Text(CurrencyMetadata.symbol(for: sourceCurrency))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.white)
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(Color.white.opacity(0.60))
+                        }
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                     }
-                    .buttonStyle(.plain)
-                    .help("Click to edit amount")
+                    .menuStyle(.borderlessButton)
+                    .help("Change Source Currency")
 
-                    Spacer(minLength: 4)
+                    // Editable Amount TextField (Item 3)
+                    TextField("Amount", text: $editableAmountText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+                        .focused($isAmountFocused)
+                        .frame(minWidth: 48)
+                        .onSubmit {
+                            recalculateWithCurrentInput()
+                        }
 
-                    // Rotate / Swap Button
+                    // Refresh / Spin Button (Item 10)
                     Button {
-                        swapCurrencies()
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.65)) {
+                            refreshSpinAngle += 360
+                        }
+                        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                        recalculateWithCurrentInput()
                     } label: {
-                        SkyletIcon.RotateShape()
-                            .stroke(Color.white.opacity(0.85), lineWidth: 1.8)
-                            .frame(width: 14, height: 14)
-                            .rotationEffect(.degrees(isRotating))
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.85))
+                            .rotationEffect(.degrees(refreshSpinAngle))
+                            .frame(width: 18, height: 18)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .help("Swap currency direction")
+                    .help("Refresh live exchange rate")
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
                 .background(
                     Capsule(style: .continuous)
                         .fill(Color.white.opacity(0.10))
@@ -191,29 +284,57 @@ public struct CurrencyView: View {
                     Capsule(style: .continuous)
                         .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
                 )
-                .frame(maxWidth: isCompact ? .infinity : 155)
 
                 Spacer(minLength: 0)
 
-                // Rate Formula & Status Badge
-                VStack(alignment: .trailing, spacing: 2) {
-                    providerStatusBadge
+                // Rate formula & Status & Pin Icon (Item 9)
+                HStack(spacing: 8) {
+                    VStack(alignment: .trailing, spacing: 1) {
+                        providerStatusBadge
 
-                    if let res = conversionResult {
-                        let sourceCode = res.sourceCurrency.rawValue
-                        let targetSymbol = CurrencyMetadata.symbol(for: res.targetCurrency)
-                        let formattedRate = CurrencyFormatter.formatRateValue(res.rate)
-                        Text("1 \(sourceCode) = \(targetSymbol)\(formattedRate)")
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color.white.opacity(0.90))
+                        if let res = conversionResult {
+                            let sourceCode = res.sourceCurrency.rawValue
+                            let targetSymbol = CurrencyMetadata.symbol(for: res.targetCurrency)
+                            let formattedRate = CurrencyFormatter.formatRateValue(res.rate)
+                            Text("1 \(sourceCode) = \(targetSymbol)\(formattedRate)")
+                                .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundStyle(Color.white.opacity(0.85))
+                        }
                     }
+
+                    // Pin Icon (Keep shelf awake until cancelled)
+                    Button {
+                        withAnimation(SkyletTheme.quickAnimation) {
+                            droplet.isPinned.toggle()
+                            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                        }
+                    } label: {
+                        Image(systemName: droplet.isPinned ? "pin.fill" : "pin")
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .foregroundStyle(droplet.isPinned ? SkyletTheme.skyBlue : Color.white.opacity(0.65))
+                            .rotationEffect(.degrees(droplet.isPinned ? 0 : 45))
+                            .frame(width: 22, height: 22)
+                            .background(
+                                Circle()
+                                    .fill(droplet.isPinned ? SkyletTheme.skyBlue.opacity(0.25) : Color.white.opacity(0.08))
+                                    .background(.ultraThinMaterial)
+                            )
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .strokeBorder(droplet.isPinned ? SkyletTheme.skyBlue.opacity(0.50) : Color.white.opacity(0.12), lineWidth: 0.5)
+                            )
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(droplet.isPinned ? "Unpin (Close on click outside)" : "Pin (Stay awake)")
                 }
             }
             .padding(.horizontal, 2)
 
-            // Lower Section: Historical Graph Card (Left) & Converted Amount (Right)
+            // Lower Section: Historical Graph Card (Left) & Converted Amount Card (Right)
             if isCompact {
-                // Compact / Paired Mode: Stacked layout
                 convertedAmountCard
                     .frame(height: 52)
                 if droplet.isGraphEnabled {
@@ -227,7 +348,6 @@ public struct CurrencyView: View {
                     .frame(height: 55)
                 }
             } else {
-                // Solo Mode: Side-by-Side layout exactly matching Figma Screenshot
                 HStack(spacing: 8) {
                     if droplet.isGraphEnabled {
                         HistoricalGraphView(
@@ -251,11 +371,11 @@ public struct CurrencyView: View {
                 }
             }
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 2)
         .padding(.top, 2)
     }
 
-    // MARK: - Large Converted Amount Card (Apple Liquid Glass)
+    // MARK: - Large Converted Amount Card (Neutral Apple Liquid Glass — Item 6)
 
     private var convertedAmountCard: some View {
         let targetFormatted = CurrencyFormatter.format(
@@ -266,6 +386,7 @@ public struct CurrencyView: View {
         return Button {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(targetFormatted, forType: .string)
+            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
             withAnimation(SkyletTheme.quickAnimation) {
                 copiedConfirmation = true
             }
@@ -276,104 +397,148 @@ public struct CurrencyView: View {
             }
         } label: {
             ZStack {
-                // Apple Liquid Glass Emerald / Aurora Gradient
+                // Neutral Frosted Liquid Glass Surface
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.10, green: 0.72, blue: 0.60).opacity(0.38),
-                                Color(red: 0.05, green: 0.42, blue: 0.50).opacity(0.20)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(Color.white.opacity(0.06))
                     .background(.ultraThinMaterial)
 
-                // Luminous Glass Stroke Rim
+                // Hairline Glass Rim
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.35),
-                                Color(red: 0.20, green: 0.85, blue: 0.75).opacity(0.25)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
 
-                VStack(spacing: 2) {
+                VStack(spacing: 3) {
                     if copiedConfirmation {
                         HStack(spacing: 4) {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 11, weight: .bold))
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(SkyletTheme.activeStatus)
                             Text("Copied to Clipboard")
-                                .font(.system(size: 11.5, weight: .semibold, design: .rounded))
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundStyle(Color.white)
                         }
-                        .foregroundStyle(Color.white)
                     } else {
                         Text(targetFormatted)
                             .font(.system(size: isCompact ? 18 : 22, weight: .bold, design: .rounded))
+                            .monospacedDigit()
                             .foregroundStyle(Color.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                             .padding(.horizontal, 6)
-                            .shadow(color: Color.black.opacity(0.35), radius: 3, x: 0, y: 1)
+
+                        HStack(spacing: 4) {
+                            Text(conversionResult?.targetCurrency.rawValue ?? targetCurrency.rawValue)
+                                .font(.system(size: 9.5, weight: .semibold))
+                                .foregroundStyle(Color.white.opacity(0.55))
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 8.5))
+                                .foregroundStyle(Color.white.opacity(0.35))
+                        }
                     }
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .shadow(color: Color.black.opacity(0.20), radius: 4, x: 0, y: 2)
+            .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 1)
         }
         .buttonStyle(.plain)
         .help("Click to copy converted amount")
     }
 
-    // MARK: - Quick Currency Chip (Apple Liquid Glass)
+    // MARK: - Quick Currency Chip (Apple Liquid Glass — Item 2)
 
-    private func quickCurrencyChip(code: CurrencyCode) -> some View {
-        let isSelected = (code == sourceCurrency || code == targetCurrency)
+    private func quickCurrencyChip(code: CurrencyCode, isFirstRowLead: Bool, isFirstRowSecond: Bool) -> some View {
+        let isDefault = (code == droplet.defaultInputCurrency)
+        let isLocal = (code == droplet.localTargetCurrency)
 
-        return Button {
-            // If input is empty, set source currency
-            if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                sourceCurrency = code
-                inputText = "100 \(code.rawValue)"
-            } else {
-                // If input has numbers, append or switch currency
-                let parsed = CurrencyParser.parse(inputText)
-                switch parsed {
-                case .amountOnly(let amt, _):
-                    sourceCurrency = code
-                    inputText = "\(amt) \(code.rawValue)"
-                case .unambiguous(let amt, _, _):
-                    sourceCurrency = code
-                    inputText = "\(amt) \(code.rawValue)"
-                default:
-                    inputText = "\(inputText) in \(code.rawValue)"
-                }
-            }
-            submitInput()
+        let chipView = Button {
+            selectShortcut(code: code)
         } label: {
             Text(code.rawValue)
-                .font(.system(size: 9.5, weight: isSelected ? .bold : .medium))
-                .foregroundStyle(isSelected ? Color.white : AdaptiveColors.notchSurfaceSecondaryText)
+                .font(.system(size: 9.5, weight: (isDefault || isLocal) ? .bold : .medium))
+                .foregroundStyle(Color.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 4.5)
+                .padding(.vertical, 5)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(isSelected ? Color.white.opacity(0.24) : Color.white.opacity(0.08))
+                        .fill(
+                            isDefault
+                                ? Color(red: 0.12, green: 0.48, blue: 0.95).opacity(0.85) // Apple Vibrant Blue
+                                : (isLocal
+                                    ? Color(red: 0.35, green: 0.75, blue: 0.98).opacity(0.70) // Lighter Sky/Cyan Blue
+                                    : Color.white.opacity(0.08))
+                        )
                         .background(.ultraThinMaterial)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .strokeBorder(isSelected ? Color.white.opacity(0.35) : Color.white.opacity(0.08), lineWidth: 0.5)
+                        .strokeBorder(
+                            isDefault
+                                ? Color.white.opacity(0.50)
+                                : (isLocal
+                                    ? Color.white.opacity(0.35)
+                                    : Color.white.opacity(0.08)),
+                            lineWidth: (isDefault || isLocal) ? 1.0 : 0.5
+                        )
                 )
+                .shadow(color: isDefault ? Color.blue.opacity(0.3) : .clear, radius: 2, x: 0, y: 1)
         }
         .buttonStyle(.plain)
+        .onDrag {
+            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+            return NSItemProvider(object: code.rawValue as NSString)
+        }
+        .help(isDefault ? "Default Input Currency (\(code.rawValue)) — Drag any currency here to replace" : (isLocal ? "Local Target Currency (\(code.rawValue)) — Drag any currency here to replace" : "Select \(code.rawValue)"))
+
+        return Group {
+            if isFirstRowLead {
+                chipView.onDrop(of: ["public.text", "public.utf8-plain-text"], isTargeted: $isTargetedDefault) { providers in
+                    handleDrop(providers: providers, targetSlot: .defaultInput)
+                }
+            } else if isFirstRowSecond {
+                chipView.onDrop(of: ["public.text", "public.utf8-plain-text"], isTargeted: $isTargetedLocal) { providers in
+                    handleDrop(providers: providers, targetSlot: .localTarget)
+                }
+            } else {
+                chipView
+            }
+        }
+    }
+
+    // MARK: - Drag & Drop Handling
+
+    private enum DropSlot {
+        case defaultInput
+        case localTarget
+    }
+
+    private func handleDrop(providers: [NSItemProvider], targetSlot: DropSlot) -> Bool {
+        guard let provider = providers.first else { return false }
+        provider.loadItem(forTypeIdentifier: "public.text", options: nil) { item, _ in
+            var text: String?
+            if let data = item as? Data {
+                text = String(data: data, encoding: .utf8)
+            } else if let str = item as? String {
+                text = str
+            } else if let nsStr = item as? NSString {
+                text = nsStr as String
+            }
+            guard let raw = text?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  let droppedCode = CurrencyCode(raw) else { return }
+
+            DispatchQueue.main.async {
+                NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                switch targetSlot {
+                case .defaultInput:
+                    self.droplet.defaultInputCurrency = droppedCode
+                    self.sourceCurrency = droppedCode
+                case .localTarget:
+                    self.droplet.localTargetCurrency = droppedCode
+                    self.targetCurrency = droppedCode
+                }
+                self.submitInput()
+            }
+        }
+        return true
     }
 
     // MARK: - Provider Status Badge
@@ -393,6 +558,32 @@ public struct CurrencyView: View {
     }
 
     // MARK: - Actions
+
+    private func selectShortcut(code: CurrencyCode) {
+        if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            sourceCurrency = code
+            inputText = "100 \(code.rawValue)"
+        } else {
+            let parsed = CurrencyParser.parse(inputText)
+            switch parsed {
+            case .amountOnly(let amt, _):
+                sourceCurrency = code
+                inputText = "\(amt) \(code.rawValue)"
+            case .unambiguous(let amt, _, _):
+                sourceCurrency = code
+                inputText = "\(amt) \(code.rawValue)"
+            default:
+                inputText = "\(inputText) in \(code.rawValue)"
+            }
+        }
+        submitInput()
+    }
+
+    private func recalculateWithCurrentInput() {
+        let cleaned = editableAmountText.filter { "0123456789.".contains($0) }
+        guard let amt = Decimal(string: cleaned), amt > 0 else { return }
+        executeConversion(amount: amt, source: sourceCurrency, target: targetCurrency)
+    }
 
     private func submitInput() {
         let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -435,6 +626,7 @@ public struct CurrencyView: View {
 
         sourceCurrency = fromCode
         targetCurrency = toCode
+        editableAmountText = "\(amount)"
         executeConversion(amount: amount, source: fromCode, target: toCode)
     }
 
@@ -451,6 +643,9 @@ public struct CurrencyView: View {
                 )
                 await MainActor.run {
                     self.conversionResult = result
+                    self.sourceCurrency = result.sourceCurrency
+                    self.targetCurrency = result.targetCurrency
+                    self.editableAmountText = "\(result.sourceAmount)"
                     self.droplet.updateLatestConversion(result)
                     self.isShowingResult = true
                     self.isLoading = false
@@ -461,19 +656,6 @@ public struct CurrencyView: View {
                     self.isLoading = false
                 }
             }
-        }
-    }
-
-    private func swapCurrencies() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            isRotating += 180
-        }
-        let temp = sourceCurrency
-        sourceCurrency = targetCurrency
-        targetCurrency = temp
-
-        if let res = conversionResult {
-            executeConversion(amount: res.sourceAmount, source: sourceCurrency, target: targetCurrency)
         }
     }
 }

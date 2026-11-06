@@ -189,6 +189,7 @@ public struct HistoricalGraphView: View {
                 // Horizontal subtle gridlines & Y-axis labels
                 if !isCompact {
                     yAxisLabelsAndGridlines(minRate: minR, maxRate: maxR, leftMargin: leftMargin, chartW: chartW, chartH: chartH)
+                        .allowsHitTesting(false)
                 }
 
                 // Area Fill Gradient
@@ -203,6 +204,7 @@ public struct HistoricalGraphView: View {
                             endPoint: .bottom
                         )
                     )
+                    .allowsHitTesting(false)
 
                 // Line Stroke
                 linePath(for: coordinates)
@@ -210,10 +212,12 @@ public struct HistoricalGraphView: View {
                         SkyletTheme.chartLine,
                         style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
                     )
+                    .allowsHitTesting(false)
 
                 // Date Labels along bottom
                 if !isCompact, points.count >= 2 {
                     xAxisDateLabels(points: points, leftMargin: leftMargin, chartW: chartW, y: chartH + 2)
+                        .allowsHitTesting(false)
                 }
 
                 // Interactive Hover Indicator & Tooltip
@@ -241,22 +245,25 @@ public struct HistoricalGraphView: View {
                     hoverTooltip(point: historyPt, coord: point, chartWidth: w)
                         .allowsHitTesting(false)
                 }
-            }
-            .contentShape(Rectangle())
-            .onContinuousHover { phase in
-                switch phase {
-                case .active(let location):
-                    let clampedX = min(max(location.x - leftMargin, 0), chartW)
-                    let fraction = clampedX / chartW
-                    let nearestIdx = min(max(Int(round(fraction * CGFloat(points.count - 1))), 0), points.count - 1)
-                    if vm.hoveredPointIndex != nearestIdx {
-                        vm.hoveredPointIndex = nearestIdx
+
+                // Dedicated transparent hover overlay on top of all chart visuals
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onContinuousHover { phase in
+                        switch phase {
+                        case .active(let location):
+                            let clampedX = min(max(location.x - leftMargin, 0), chartW)
+                            let fraction = clampedX / chartW
+                            let nearestIdx = min(max(Int(round(fraction * CGFloat(points.count - 1))), 0), points.count - 1)
+                            if vm.hoveredPointIndex != nearestIdx {
+                                vm.hoveredPointIndex = nearestIdx
+                            }
+                        case .ended:
+                            if vm.hoveredPointIndex != nil {
+                                vm.hoveredPointIndex = nil
+                            }
+                        }
                     }
-                case .ended:
-                    if vm.hoveredPointIndex != nil {
-                        vm.hoveredPointIndex = nil
-                    }
-                }
             }
         }
     }

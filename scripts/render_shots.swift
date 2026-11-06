@@ -62,19 +62,29 @@ public struct FigmaPanel<Content: View>: View {
 public struct ShotCurrencyInputView: View {
     public var body: some View {
         FigmaPanel {
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 // Top Bar
                 HStack {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 15))
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 11.5, weight: .semibold))
                         .foregroundStyle(Color.white.opacity(0.85))
+                        .frame(width: 24, height: 24)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.10))
+                                .background(.ultraThinMaterial)
+                        )
+                        .clipShape(Circle())
+                        .overlay(Circle().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5))
+
                     Spacer()
+
                     HStack(spacing: 4) {
                         Circle()
                             .fill(SpecTheme.activeStatus)
                             .frame(width: 5, height: 5)
                         Text("• API Active")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(SpecTheme.activeStatus)
                     }
                 }
@@ -82,15 +92,15 @@ public struct ShotCurrencyInputView: View {
                 // Apple Liquid Glass Search Capsule
                 HStack {
                     Text("67.87 in USD")
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .font(.system(size: 14.5, weight: .medium, design: .rounded))
                         .foregroundStyle(Color.white)
                     Spacer()
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.75))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.70))
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 9)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
                 .background(
                     Capsule(style: .continuous)
                         .fill(Color.white.opacity(0.10))
@@ -102,21 +112,21 @@ public struct ShotCurrencyInputView: View {
                         .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.5)
                 )
 
-                // Quick Currency Chips
+                // Quick Currency Chips (Row 1 Lead: Vibrant Blue, Row 1 Second: Light Sky, Rest: Frosted)
                 VStack(spacing: 6) {
-                    HStack(spacing: 8) {
-                        chip(text: "USD", isSelected: true)
-                        chip(text: "INR", isSelected: true)
-                        chip(text: "EUR", isSelected: false)
-                        chip(text: "GBP", isSelected: false)
-                        chip(text: "AED", isSelected: false)
+                    HStack(spacing: 6) {
+                        chip(text: "USD", style: .defaultBlue)
+                        chip(text: "INR", style: .localSky)
+                        chip(text: "EUR", style: .neutral)
+                        chip(text: "GBP", style: .neutral)
+                        chip(text: "AED", style: .neutral)
                     }
-                    HStack(spacing: 8) {
-                        chip(text: "CAD", isSelected: false)
-                        chip(text: "AUD", isSelected: false)
-                        chip(text: "SGD", isSelected: false)
-                        chip(text: "JPY", isSelected: false)
-                        chip(text: "CHF", isSelected: false)
+                    HStack(spacing: 6) {
+                        chip(text: "CAD", style: .neutral)
+                        chip(text: "AUD", style: .neutral)
+                        chip(text: "SGD", style: .neutral)
+                        chip(text: "JPY", style: .neutral)
+                        chip(text: "CHF", style: .neutral)
                     }
                 }
 
@@ -125,22 +135,44 @@ public struct ShotCurrencyInputView: View {
         }
     }
 
-    private func chip(text: String, isSelected: Bool) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: isSelected ? .bold : .medium))
-            .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.80))
+    private enum ChipStyle {
+        case defaultBlue
+        case localSky
+        case neutral
+    }
+
+    private func chip(text: String, style: ChipStyle) -> some View {
+        let isLead = (style == .defaultBlue)
+        let isSecond = (style == .localSky)
+        let fillColor: Color = isLead
+            ? Color(red: 0.12, green: 0.48, blue: 0.95).opacity(0.85)
+            : (isSecond
+                ? Color(red: 0.35, green: 0.75, blue: 0.98).opacity(0.70)
+                : Color.white.opacity(0.08))
+        let strokeColor: Color = isLead
+            ? Color.white.opacity(0.50)
+            : (isSecond
+                ? Color.white.opacity(0.35)
+                : Color.white.opacity(0.08))
+        let strokeWidth: CGFloat = (isLead || isSecond) ? 1.0 : 0.5
+        let shadowColor: Color = isLead ? Color.blue.opacity(0.3) : .clear
+
+        return Text(text)
+            .font(.system(size: 9.5, weight: (isLead || isSecond) ? .bold : .medium))
+            .foregroundStyle(Color.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 5)
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(isSelected ? Color.white.opacity(0.24) : Color.white.opacity(0.08))
+                    .fill(fillColor)
                     .background(.ultraThinMaterial)
             )
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(isSelected ? Color.white.opacity(0.35) : Color.white.opacity(0.08), lineWidth: 0.5)
+                    .strokeBorder(strokeColor, lineWidth: strokeWidth)
             )
+            .shadow(color: shadowColor, radius: 2, x: 0, y: 1)
     }
 }
 
@@ -160,19 +192,48 @@ public struct ShotCurrencyResultView: View {
     public var body: some View {
         FigmaPanel(height: 200) {
             VStack(spacing: 8) {
-                // Top Row
-                HStack {
-                    HStack(spacing: 8) {
-                        Text("$ 67.87")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                // Top Row: Back Button, Amount Pill with Currency Dropdown, Formula, Status & Pin Icon
+                HStack(spacing: 8) {
+                    // Back Button
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.white.opacity(0.85))
+                        .frame(width: 24, height: 24)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.10))
+                                .background(.ultraThinMaterial)
+                        )
+                        .clipShape(Circle())
+                        .overlay(Circle().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5))
+
+                    // Source Amount Capsule: [ Dropdown v | Editable 67.87 | Refresh ↻ ]
+                    HStack(spacing: 6) {
+                        HStack(spacing: 2) {
+                            Text("$")
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.white)
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(Color.white.opacity(0.60))
+                        }
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+                        Text("67.87")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundStyle(Color.white)
-                        Spacer()
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 12, weight: .bold))
+
+                        Spacer(minLength: 2)
+
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(Color.white.opacity(0.85))
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
                     .background(
                         Capsule(style: .continuous)
                             .fill(Color.white.opacity(0.10))
@@ -181,29 +242,45 @@ public struct ShotCurrencyResultView: View {
                     .clipShape(Capsule(style: .continuous))
                     .overlay(
                         Capsule(style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.5)
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
                     )
-                    .frame(width: 170)
+                    .frame(width: 155)
 
-                    Spacer()
+                    Spacer(minLength: 0)
 
-                    VStack(alignment: .trailing, spacing: 2) {
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(SpecTheme.activeStatus)
-                                .frame(width: 5, height: 5)
-                            Text("• API Active")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(SpecTheme.activeStatus)
+                    // Rate Formula & Status & Pin Icon
+                    HStack(spacing: 8) {
+                        VStack(alignment: .trailing, spacing: 1) {
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(SpecTheme.activeStatus)
+                                    .frame(width: 5, height: 5)
+                                Text("• API Active")
+                                    .font(.system(size: 9.5, weight: .medium))
+                                    .foregroundStyle(SpecTheme.activeStatus)
+                            }
+                            Text("$1 = ₹94.47")
+                                .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                                .foregroundStyle(Color.white.opacity(0.85))
                         }
-                        Text("$1 = ₹94.47")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color.white.opacity(0.95))
+
+                        // Pin Icon
+                        Image(systemName: "pin")
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.65))
+                            .frame(width: 22, height: 22)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.08))
+                                    .background(.ultraThinMaterial)
+                            )
+                            .clipShape(Circle())
+                            .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5))
                     }
                 }
 
                 // Bottom Section: Graph Card (Left) & Converted Amount (Right)
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     if isGraphEnabled {
                         graphCard
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -320,26 +397,31 @@ public struct ShotCurrencyResultView: View {
     private var convertedAmountCard: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.16, green: 0.65, blue: 0.52).opacity(0.95),
-                            Color(red: 0.08, green: 0.45, blue: 0.38).opacity(0.95)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(Color.white.opacity(0.06))
                 .background(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.24), lineWidth: 0.5)
+                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
                 )
 
-            Text("₹6411.37")
-                .font(.system(size: isGraphEnabled ? 22 : 26, weight: .bold, design: .rounded))
-                .foregroundStyle(Color.white)
-                .shadow(color: Color.black.opacity(0.25), radius: 2, x: 0, y: 1)
+            VStack(spacing: 3) {
+                Text("₹6411.37")
+                    .font(.system(size: isGraphEnabled ? 20 : 25, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .padding(.horizontal, 6)
+
+                HStack(spacing: 4) {
+                    Text("INR • Indian Rupee")
+                        .font(.system(size: 8.5, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.55))
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 8))
+                        .foregroundStyle(Color.white.opacity(0.35))
+                }
+            }
         }
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
@@ -350,13 +432,33 @@ public struct ShotCurrencyResultView: View {
 public struct ShotSettingsView: View {
     public var body: some View {
         FigmaPanel(height: 200) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 7) {
                 // Header
                 HStack {
-                    Text("Settings")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Color.white)
+                    HStack(spacing: 3) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("Back")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(Color.white.opacity(0.85))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.white.opacity(0.08))
+                            .background(.ultraThinMaterial)
+                    )
+                    .clipShape(Capsule(style: .continuous))
+
                     Spacer()
+
+                    Text("Settings")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.white)
+
+                    Spacer()
+
                     HStack(spacing: 4) {
                         Circle()
                             .fill(SpecTheme.activeStatus)
@@ -384,7 +486,7 @@ public struct ShotSettingsView: View {
                             .foregroundStyle(Color.white.opacity(0.70))
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 4)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color.white.opacity(0.08))
@@ -401,49 +503,59 @@ public struct ShotSettingsView: View {
                         .foregroundStyle(Color.white.opacity(0.60))
                 }
 
-                // Default Input Currency
+                // Default Input Currency (Native Menu Style)
                 HStack {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("Default").font(.system(size: 9)).foregroundStyle(Color.white.opacity(0.40))
                         Text("Input Currency :").font(.system(size: 11, weight: .medium)).foregroundStyle(Color.white.opacity(0.85))
                     }
                     Spacer()
-                    Text("$ USD")
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(Color.white.opacity(0.14))
-                                .background(.ultraThinMaterial)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
-                        )
+                    HStack(spacing: 4) {
+                        Text("$ USD")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.white)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.60))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3.5)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.white.opacity(0.14))
+                            .background(.ultraThinMaterial)
+                    )
+                    .clipShape(Capsule(style: .continuous))
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                    )
                 }
 
-                // Choose Your Local Currency
+                // Choose Your Local Currency (Native Menu Style)
                 HStack {
                     Text("Choose Your Local Currency :").font(.system(size: 11, weight: .medium)).foregroundStyle(Color.white.opacity(0.85))
                     Spacer()
-                    Text("₹ INR")
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(Color.white.opacity(0.14))
-                                .background(.ultraThinMaterial)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
-                        )
+                    HStack(spacing: 4) {
+                        Text("₹ INR")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.white)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.60))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3.5)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.white.opacity(0.14))
+                            .background(.ultraThinMaterial)
+                    )
+                    .clipShape(Capsule(style: .continuous))
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                    )
                 }
 
                 // Graph Toggle
@@ -537,20 +649,11 @@ public struct ShotCompactPairedView: View {
                 // Converted Amount Card
                 ZStack {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(red: 0.16, green: 0.65, blue: 0.52).opacity(0.95),
-                                    Color(red: 0.08, green: 0.45, blue: 0.38).opacity(0.95)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(Color.white.opacity(0.06))
                         .background(.ultraThinMaterial)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.24), lineWidth: 0.5)
+                                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
                         )
                     Text("₹6411.37")
                         .font(.system(size: 19, weight: .bold, design: .rounded))

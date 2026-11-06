@@ -26,6 +26,11 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
 
     @Published public var selectedMode: SkyletMode = .currency
     @Published public private(set) var latestConversion: CurrencyConversionResult?
+    @Published public var isPinned: Bool = false {
+        didSet {
+            host?.shelf.setHoldsOpen(isPinned)
+        }
+    }
 
     // Persisted User Preferences
     @Published public var defaultInputCurrency: CurrencyCode {
@@ -98,6 +103,10 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
     }
 
     public func deactivate() {
+        if isPinned {
+            isPinned = false
+            host?.shelf.setHoldsOpen(false)
+        }
         liveActivityTimerTask?.cancel()
         liveActivityTimerTask = nil
         cancellables.removeAll()
@@ -130,7 +139,7 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
                 LiveActivityState(
                     priority: 150,
                     accessibilityTitle: "Skylet conversion: \(conv.sourceAmount) \(conv.sourceCurrency.rawValue) = \(formattedTarget)",
-                    isInteractive: false
+                    isInteractive: true
                 )
             )
         } else {
@@ -181,7 +190,7 @@ extension SkyletDroplet: LiveActivityProviding {
                         .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+                        .truncationMode(.tail)
                         .minimumScaleFactor(0.85)
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
                         .padding(.trailing, DroppySpacing.xs)
@@ -200,7 +209,7 @@ extension SkyletDroplet: LiveActivityProviding {
                         .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+                        .truncationMode(.tail)
                         .minimumScaleFactor(0.85)
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
                         .padding(.leading, DroppySpacing.xs)
