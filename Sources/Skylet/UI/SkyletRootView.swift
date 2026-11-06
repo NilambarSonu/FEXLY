@@ -11,7 +11,6 @@ import DroppyKit
 
 public enum SkyletMode: String, CaseIterable, Identifiable {
     case currency = "Currency"
-    case focus = "Focus"
     case settings = "Settings"
 
     public var id: String { rawValue }
@@ -19,7 +18,6 @@ public enum SkyletMode: String, CaseIterable, Identifiable {
     public var iconName: String {
         switch self {
         case .currency: return "indianrupeesign.circle.fill"
-        case .focus: return "timer"
         case .settings: return "gearshape.fill"
         }
     }
@@ -44,8 +42,6 @@ public struct SkyletRootView: View {
                 switch droplet.selectedMode {
                 case .currency:
                     CurrencyView(droplet: droplet, isCompact: context.isCompact)
-                case .focus:
-                    FocusTimerView(droplet: droplet, isCompact: context.isCompact)
                 case .settings:
                     SettingsView(droplet: droplet)
                 }
@@ -65,9 +61,9 @@ public struct SkyletRootView: View {
     private var headerRow: some View {
         HStack(spacing: DroppySpacing.xsm) {
             // App symbol and title
-            Image(systemName: droplet.selectedMode == .focus ? "sun.max.fill" : "sparkles")
+            Image(systemName: "sparkles")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(droplet.selectedMode == .focus ? SkyletTheme.solarGold : SkyletTheme.skyBlue)
+                .foregroundStyle(SkyletTheme.skyBlue)
 
             Text("Skylet")
                 .font(.system(size: 12, weight: .semibold))
@@ -75,12 +71,11 @@ public struct SkyletRootView: View {
 
             Spacer(minLength: DroppySpacing.md)
 
-            // Segmented mode switcher
+            // Mode switcher / settings toggle
             if !context.isCompact {
                 HStack(spacing: 2) {
                     ForEach(SkyletMode.allCases) { mode in
                         let isSelected = droplet.selectedMode == mode
-                        let accentColor: Color = mode == .focus ? SkyletTheme.solarGold : SkyletTheme.skyBlue
                         Button {
                             withAnimation(SkyletTheme.quickAnimation) {
                                 droplet.selectedMode = mode
@@ -94,8 +89,8 @@ public struct SkyletRootView: View {
                             }
                             .padding(.horizontal, 7)
                             .padding(.vertical, 3)
-                            .background(isSelected ? accentColor.opacity(0.22) : Color.clear)
-                            .foregroundStyle(isSelected ? accentColor : SkyletTheme.secondaryText)
+                            .background(isSelected ? SkyletTheme.skyBlue.opacity(0.22) : Color.clear)
+                            .foregroundStyle(isSelected ? SkyletTheme.skyBlue : SkyletTheme.secondaryText)
                             .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
@@ -108,7 +103,7 @@ public struct SkyletRootView: View {
                 // Paired compact toggle
                 Button {
                     withAnimation(SkyletTheme.quickAnimation) {
-                        droplet.selectedMode = (droplet.selectedMode == .currency) ? .focus : .currency
+                        droplet.selectedMode = (droplet.selectedMode == .currency) ? .settings : .currency
                     }
                 } label: {
                     Image(systemName: droplet.selectedMode.iconName)
@@ -119,6 +114,7 @@ public struct SkyletRootView: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .help(droplet.selectedMode == .currency ? "Configure Twelve Data API Key" : "Back to Currency Converter")
             }
         }
     }

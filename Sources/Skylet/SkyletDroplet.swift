@@ -8,8 +8,8 @@ import SwiftUI
 import DroppyKit
 import SkyletCore
 
-/// Skylet: Native DroppyKit utility combining currency intelligence (instant INR conversion)
-/// and a display-awake focus timer for macOS.
+/// Skylet: Native DroppyKit utility providing real-time foreign exchange intelligence,
+/// live Twelve Data forex rates, honest provenance tracking, and instant INR conversion for macOS.
 @MainActor
 public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
     /// Must equal `DroppyDropletID` in Info.plist and `id` in `droplet.json`.
@@ -19,7 +19,6 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
     private var cancellables = Set<AnyCancellable>()
     private let activitySubject = CurrentValueSubject<LiveActivityState?, Never>(nil)
 
-    public let timerEngine: FocusTimerEngine
     public let rateService: CurrencyRateService
     public let keychain: KeychainStoring
 
@@ -30,7 +29,6 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
         keychain: KeychainStoring = MacOSKeychainManager.shared,
         rateService: CurrencyRateService? = nil
     ) {
-        self.timerEngine = FocusTimerEngine()
         self.keychain = keychain
         self.rateService = rateService ?? CurrencyRateService(
             realTimeProvider: TwelveDataRateProvider(keychain: keychain),
@@ -39,33 +37,17 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
             cache: CurrencyRateCache.shared
         )
         super.init()
-
-        // Forward Focus Timer engine changes to droplet so views observing droplet re-render immediately
-        timerEngine.objectWillChange
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
-            }
-            .store(in: &cancellables)
     }
 
     // MARK: - Lifecycle
 
     public func activate(host: DropletHost) throws {
         self.host = host
-        host.log.info("Skylet activated")
-
-        // Observe Focus Timer state to publish Live Activity updates
-        timerEngine.$status
-            .sink { [weak self] _ in
-                guard let self = self else { return }
-                self.publishAppropriateLiveActivity()
-            }
-            .store(in: &cancellables)
+        host.log.info("Skylet activated — Real-Time FX & Currency Intelligence")
+        publishAppropriateLiveActivity()
     }
 
     public func deactivate() {
-        // Full teardown: stop timer, release power assertions, clear live activity, release host.
-        timerEngine.deactivate()
         cancellables.removeAll()
         latestConversion = nil
         activitySubject.send(nil)
@@ -78,39 +60,16 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
     }
 
     private func publishAppropriateLiveActivity() {
-        switch timerEngine.status {
-        case .running(_, let remaining, _):
-            let formatted = FocusTimerEngine.formatCountdown(remaining)
+        if let conv = latestConversion {
+            let formattedTarget = CurrencyFormatter.format(amount: conv.targetAmount, currency: conv.targetCurrency)
             activitySubject.send(
                 LiveActivityState(
-                    priority: 250,
-                    accessibilityTitle: "Skylet focus timer: \(formatted)",
+                    priority: 150,
+                    accessibilityTitle: "Skylet conversion: \(conv.sourceAmount) \(conv.sourceCurrency.rawValue) = \(formattedTarget)",
                     isInteractive: false
                 )
             )
-        case .paused(_, let remaining, _):
-            let formatted = FocusTimerEngine.formatCountdown(remaining)
-            activitySubject.send(
-                LiveActivityState(
-                    priority: 200,
-                    accessibilityTitle: "Skylet timer paused: \(formatted)",
-                    isInteractive: false
-                )
-            )
-        case .idle, .completed:
-            if let conv = latestConversion {
-                let formattedTarget = CurrencyFormatter.format(amount: conv.targetAmount, currency: conv.targetCurrency)
-                activitySubject.send(
-                    LiveActivityState(
-                        priority: 150,
-                        accessibilityTitle: "Skylet conversion: \(conv.sourceAmount) \(conv.sourceCurrency.rawValue) = \(formattedTarget)",
-                        isInteractive: false
-                    )
-                )
-            } else {
-                activitySubject.send(nil)
-            }
-        @unknown default:
+        } else {
             activitySubject.send(nil)
         }
     }
@@ -132,7 +91,7 @@ extension SkyletDroplet: ShelfWidgetProviding {
                 ),
                 searchKeywords: [
                     "currency", "converter", "inr", "rupee",
-                    "focus", "timer", "display", "awake"
+                    "forex", "exchange", "rates", "twelve data"
                 ]
             )
         ]
@@ -153,20 +112,9 @@ extension SkyletDroplet: LiveActivityProviding {
     public func makeCompactLeading() -> AnyView {
         AnyView(
             HStack(spacing: 3) {
-                switch timerEngine.status {
-                case .running, .paused, .completed:
-                    SolarSunView(status: timerEngine.status, diameter: DroppyLiveActivityMetrics.iconSize, showAura: false)
-                case .idle:
-                    if latestConversion != nil {
-                        Image(systemName: "indianrupeesign.circle.fill")
-                            .font(.system(size: DroppyLiveActivityMetrics.iconSize, weight: .semibold))
-                            .foregroundStyle(SkyletTheme.skyBlue)
-                    } else {
-                        SolarSunView(status: .idle, diameter: DroppyLiveActivityMetrics.iconSize, showAura: false)
-                    }
-                @unknown default:
-                    EmptyView()
-                }
+                Image(systemName: "indianrupeesign.circle.fill")
+                    .font(.system(size: DroppyLiveActivityMetrics.iconSize, weight: .semibold))
+                    .foregroundStyle(SkyletTheme.skyBlue)
             }
         )
     }
@@ -174,22 +122,12 @@ extension SkyletDroplet: LiveActivityProviding {
     public func makeCompactTrailing() -> AnyView {
         AnyView(
             Group {
-                switch timerEngine.status {
-                case .running, .paused:
-                    Text(currentCountdownText)
+                if let conv = latestConversion {
+                    Text(CurrencyFormatter.format(amount: conv.targetAmount, currency: conv.targetCurrency))
                         .font(.system(size: DroppyLiveActivityMetrics.labelFontSize, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
-                case .idle, .completed:
-                    if let conv = latestConversion {
-                        Text(CurrencyFormatter.format(amount: conv.targetAmount, currency: conv.targetCurrency))
-                            .font(.system(size: DroppyLiveActivityMetrics.labelFontSize, weight: .semibold, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
-                    } else {
-                        EmptyView()
-                    }
-                @unknown default:
+                } else {
                     EmptyView()
                 }
             }
@@ -198,10 +136,6 @@ extension SkyletDroplet: LiveActivityProviding {
 
     public func makeExpanded(context: LiveActivityContext) -> AnyView {
         AnyView(EmptyView())
-    }
-
-    private var currentCountdownText: String {
-        FocusTimerEngine.formatCountdown(timerEngine.status.remainingSeconds)
     }
 }
 
@@ -218,4 +152,3 @@ extension SkyletDroplet: SettingsPaneProviding {
         ]
     }
 }
-
