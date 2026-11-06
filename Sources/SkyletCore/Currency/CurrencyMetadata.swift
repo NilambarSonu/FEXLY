@@ -256,5 +256,14 @@ public enum CurrencyRegistry {
     public static let popularCurrencies: [CurrencyCode] = [
         .usd, .eur, .gbp, .aed, .jpy, .cad, .aud, .sgd, .sar, .cny
     ]
+
+    /// Lookup primary symbol for a given currency code.
+    public static func symbol(for code: CurrencyCode) -> String {
+        info(for: code).symbol
+    }
 }
+
+/// Backwards-compatible alias for currency metadata lookup.
+public typealias CurrencyMetadata = CurrencyRegistry
+
 

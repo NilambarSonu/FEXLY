@@ -331,7 +331,7 @@ public struct CurrencyView: View {
 
     private var providerStatusBadge: some View {
         let hasKey = (droplet.keychain.get(key: "twelvedata_api_key") != nil)
-        let isLive = conversionResult?.rateEntry.freshness == .live
+        let isLive = conversionResult?.freshness == .live
 
         return HStack(spacing: 4) {
             Circle()
@@ -360,6 +360,9 @@ public struct CurrencyView: View {
         case .invalidAmount:
             errorMessage = "Please enter a valid amount and currency."
             return
+        case .multipleAmountsFound:
+            errorMessage = "Multiple amounts found. Please enter a single amount."
+            return
         case .amountOnly(let amt, _):
             amount = amt
             fromCode = droplet.defaultInputCurrency
@@ -372,6 +375,13 @@ public struct CurrencyView: View {
             amount = amt
             fromCode = candidates.first ?? droplet.defaultInputCurrency
             toCode = (fromCode == droplet.localTargetCurrency) ? droplet.defaultInputCurrency : droplet.localTargetCurrency
+        case .unknownCurrency(let amt, _, _):
+            amount = amt
+            fromCode = droplet.defaultInputCurrency
+            toCode = droplet.localTargetCurrency
+        @unknown default:
+            errorMessage = "Unable to parse input."
+            return
         }
 
         sourceCurrency = fromCode
