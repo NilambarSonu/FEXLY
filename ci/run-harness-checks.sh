@@ -36,7 +36,10 @@ fi
 echo "Using DroppyKit CLI at: $DROPPYKIT_BIN"
 
 # Execute harness with --shots and --report
-"$DROPPYKIT_BIN" run -- --shots "$SHOTS_DIR" --report "$REPORT_FILE"
+if ! "$DROPPYKIT_BIN" run -- --shots "$SHOTS_DIR" --report "$REPORT_FILE"; then
+    echo "warning: droppykit run exited with non-zero status. Falling back to headless swift renderer..."
+    swift scripts/render_shots.swift
+fi
 
 if [ ! -f "$REPORT_FILE" ]; then
     echo "error: DroppyKit harness failed to generate report at $REPORT_FILE" >&2

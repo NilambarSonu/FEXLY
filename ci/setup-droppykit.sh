@@ -75,6 +75,17 @@ if p_build.exists():
     p_build.write_text(t_build)
     print("✓ Patched build-droplet.sh to preserve compiler diagnostics")
 
+# Patch 5: SettingsPageChrome.swift macOS 26.0 glassEffect preview guard
+# Reason: SettingsPageChrome contains unreleased .glassEffect calls that fail under Xcode 16 SDK.
+p_chrome = kit_path / "Sources/DroppyKitHarness/Panel/SettingsPageChrome.swift"
+if p_chrome.exists():
+    t_chrome = p_chrome.read_text()
+    if "macOS 26.0" in t_chrome:
+        t_chrome = re.sub(r"if #available\(macOS 26\.0, \*\) \{[\s\S]*?\} else \{([\s\S]*?)\n    \}", r"\1", t_chrome)
+        t_chrome = re.sub(r"if #available\(macOS 26\.0, \*\) \{[\s\S]*?\} else \{([\s\S]*?)\n            \}", r"\1", t_chrome)
+        p_chrome.write_text(t_chrome)
+        print("✓ Patched SettingsPageChrome.swift glassEffect availability branches")
+
 PY
 
 # Ensure Scripts are executable
