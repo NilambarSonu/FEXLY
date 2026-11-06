@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-11-06
+
+### Status
+Pure Currency Intelligence & Real-Time FX Refocus Update.
+
+### Highlights
+- **Single-Purpose Focus on Real-Time FX**: Completely removed the Focus Timer and Solar Sun instrument to specialize Skylet 100% on foreign exchange intelligence, live Twelve Data quotes, and honest rate provenance.
+- **Pruned Architecture**: Retired `FocusTimerEngine`, `FocusTimerView`, `SolarSunView`, and macOS display-awake power assertion controllers, reducing codebase complexity and memory footprint.
+- **Streamlined Droplet Navigation**: Simplified `SkyletRootView` mode navigation directly between Currency conversion and Twelve Data API key settings.
+- **Streamlined Live Activity**: The notch Live Activity wing now purely surfaces live converted amounts and currency symbols (`₹` and foreign currencies).
+- **Focused Test Suite**: Standardized the automated test suite to 81 core unit tests covering currency parsing, high-precision Decimal financial arithmetic, Twelve Data HTTPS engine, Keychain credential persistence, and honest cache provenance.
+
+### Removed
+- `Sources/SkyletCore/Focus/FocusTimerEngine.swift`: Focus timer deadline engine.
+- `Sources/SkyletCore/Focus/PowerAssertionController.swift`: macOS display-awake power assertion controller.
+- `Sources/Skylet/UI/SolarSunView.swift`: 12-beam solar sun visual instrument.
+- `Sources/Skylet/UI/FocusTimerView.swift`: Focus timer UI and duration presets.
+- `Tests/SkyletCoreTests/FocusTimerEngineTests.swift`: Focus timer unit tests.
+
+---
+
 ## [1.1.0] - 2026-10-30
 
 ### Status

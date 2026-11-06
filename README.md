@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>A premium native macOS DroppyKit utility featuring live currency conversion and an ambient solar Focus Timer.</strong>
+  <strong>A premium native macOS DroppyKit utility featuring real-time foreign exchange intelligence and honest rate provenance.</strong>
 </p>
 
 <p align="center">
@@ -21,10 +21,11 @@
 
 ### [➔ Download Latest SKYLET Release](https://github.com/NilambarSonu/SKYLET/releases/latest)
 
-Skylet lives directly inside [Droppy](https://getdroppy.app)’s Dynamic Island and shelf. It delivers two essential native macOS workflows designed around **Quiet Precision. Instant Intelligence**:
+Skylet lives directly inside [Droppy](https://getdroppy.app)’s Dynamic Island and shelf. It delivers dedicated native macOS currency intelligence designed around **Quiet Precision. Instant Intelligence**:
 
-1. **Currency Intelligence**: Real-time foreign exchange conversion to Indian Rupees (INR) using live quotes from Twelve Data Forex API with Apple Keychain security, honest quote timestamps, and instant clipboard import.
-2. **Focus Timer**: Keep your Mac display awake during deep study, reading, or coding sessions using native macOS power assertions without touching global System Settings.
+- **Real-Time Forex Intelligence**: Near-instant conversion to Indian Rupees (INR) and global currencies using live quotes from Twelve Data Forex API with Apple Keychain security, honest quote timestamps, and instant clipboard import.
+- **Honest Provenance & Freshness**: Absolute transparency with a 5-tier freshness model (`LIVE`, `DELAYED`, `CACHED`, `DAILY REFERENCE`, `STALE`) so you always know the exact age and origin of every quote.
+- **Zero Roundoff Errors**: Pure Decimal-safe financial math preventing floating-point rounding issues.
 
 ---
 
@@ -35,32 +36,24 @@ Skylet lives directly inside [Droppy](https://getdroppy.app)’s Dynamic Island 
 - **Apple macOS Keychain Security**: Stores your Twelve Data API key directly in macOS Keychain (`kSecClassGenericPassword`). Never logged, never shared, and never committed to source control.
 - **Honest Provenance & Freshness Tracking**: Rates explicitly declare their true origin:
   - `LIVE`: Verified quote from Twelve Data received within the last 15 minutes.
-  - `DELAYED`: Active quote during closed market hours or weekend halts.
+  - `DELAYED`: Active quote during closed market hours or weekend halts (up to 72h).
   - `CACHED`: Served from local 5-minute pair cache (never falsely marked as live).
   - `DAILY REFERENCE`: Fallback reference rate from ExchangeRate-API or Frankfurter (ECB).
   - `STALE`: Quote age exceeding 72 hours.
   - `UNAVAILABLE`: Complete network failure.
 - **Pure Decimal-Safe Arithmetic**: Financial conversions execute exclusively through Foundation `Decimal` (`NSDecimalMultiply`) preventing floating-point roundoff errors.
-- **Searchable Currency Directory**: Built-in modal (`CurrencySelectorView`) with instant filtering by country, ISO currency code, symbol, or full name, with popular quick-pills (`USD`, `EUR`, `GBP`, `AED`, `CAD`, `AUD`, `SGD`, `JPY`, `SAR`, `CNY`).
+- **Searchable Currency Directory**: Built-in in-place overlay (`CurrencySelectorView`) with instant filtering by country, ISO currency code, symbol, or full name, with popular quick-pills (`USD`, `EUR`, `GBP`, `AED`, `CAD`, `AUD`, `SGD`, `JPY`, `SAR`, `CNY`).
 - **Interactive Directional Currency Swap**: Instant reversal between foreign currency and INR with smooth $180^\circ$ rotation spring micro-interaction.
 - **Live Rate Refresh**: Manual refresh button with $360^\circ$ rotation animation and concurrent request deduplication.
 - **Clipboard Workflow**: Instant conversion of amounts on your clipboard with one click — zero continuous background clipboard snooping.
 - **One-Click Copy**: Copies clean formatted summary (e.g. `100.00 USD = ₹8,350.00 (Illustrative example; real quotes use live market rate)`) with immediate in-place checkmark feedback.
 
-### ⏱️ Focus Timer & Solar Instrument
-- **Custom Solar Sun Instrument (`SolarSunView`)**: An animated visual instrument replacing anxious numeric countdowns. 12 radial solar beams progressively recede clockwise as time elapses, backed by an energetic amber core and celestial horizon arc.
-- **Instant Reactive Controls**: Action button immediately reacts to user interactions (`Start Focus` ➔ `Pause` ➔ `Resume` ➔ `Start Again`), paired with an immediate secondary `Reset` button.
-- **Zero-Drift Monotonic Deadline**: System-clock deadline tracking ensures time calculation never drifts even if the Mac sleeps or the UI is hidden.
-- **Native Power Assertion**: Uses Apple's public `ProcessInfo.beginActivity(options: .idleDisplaySleepDisabled)` API to prevent idle screen sleep without administrator rights, terminal scripts, or mouse jiggling.
-- **Strict Assertion Lifecycle**: Automatically releases display-awake assertions on pause, cancellation, session completion, or droplet deactivation.
-- **Calibrated Duration Presets**: Quick-select chips for 15m, 25m, 45m, 60m, 120m, plus custom minutes entry.
-
 ### 🏝️ Dynamic Island & Shelf Integration
 - **Continuous Notch Curvature**: Perfectly shaped with `18pt` shelf and `26.5pt` island radii, eliminating protruding sharp corners.
 - **In-Place Currency Picker Overlay**: Layered selection overlay replaces rectangular AppKit modal sheets, maintaining seamless curvature and dark-chrome integration.
 - **Dual Surface Layouts**: Full interactive canvas in Solo shelf layout (420pt) and compact glanceable canvas in Paired shelf mode (210pt).
-- **Dynamic Island / Notch Live Activity**: Publishes a mini 18pt Solar Sun and compact remaining time in the notch Live Activity wings during active focus sessions.
-- **Native Droppy Settings Pane**: Accessible via **Droppy Settings ➔ Skylet** with masked key input, latency tester, and quota notices.
+- **Dynamic Island / Notch Live Activity**: Publishes live converted INR amounts and currency symbols in the notch wings.
+- **Native Droppy Settings Pane**: Accessible via **Droppy Settings ➔ Skylet** (or in-widget Settings tab) with masked key input, latency tester, and quota notices.
 
 ---
 
@@ -128,19 +121,18 @@ Updating Skylet is safe and completely preserves your Keychain-stored Twelve Dat
 
 ## Architecture & Verification
 
-Skylet is engineered with strict separation between UI, financial domain logic, and hardware assertions:
+Skylet is engineered with strict separation between UI and financial domain logic:
 
 ```
 SKYLET
 ├── Sources/
 │   ├── SkyletCore/                  # Pure domain logic (zero host UI dependencies)
 │   │   ├── Currency/                # Currency parser, Decimal arithmetic, Twelve Data provider
-│   │   ├── Focus/                   # Monotonic timer, ProcessInfo power assertion controller
 │   │   └── Security/                # Apple Security framework Keychain manager
 │   ├── Skylet/                      # DroppyKit UI & Presentation layer
 │   │   ├── Theme/                   # SkyletTheme design tokens (AdaptiveColors, DroppySpacing)
-│   │   └── UI/                      # CurrencyView, CurrencySelectorView, FocusTimerView, SettingsView
-│   └── SkyletTestsRunner/           # 133 automated unit tests
+│   │   └── UI/                      # CurrencyView, CurrencySelectorView, SettingsView, SkyletRootView
+│   └── SkyletTestsRunner/           # 81 automated unit tests
 ├── droplet.json                     # DroppyKit manifest (ABI 1, minAPI 1.6.0)
 └── .github/workflows/               # CI build & automated release pipelines
 ```
@@ -148,18 +140,11 @@ SKYLET
 ### Visual Preview & Screenshots
 
 <p align="center">
-  <img src="shots/currency_main.png" alt="Currency Intelligence" width="300" />
-  &nbsp;&nbsp;
-  <img src="shots/focus_running.png" alt="Focus Timer Running" width="300" />
-</p>
-<p align="center">
-  <img src="shots/focus_idle.png" alt="Focus Timer Ready" width="300" />
-  &nbsp;&nbsp;
-  <img src="shots/focus_completed.png" alt="Focus Timer Completed" width="300" />
+  <img src="shots/currency_main.png" alt="Currency Intelligence" width="340" />
 </p>
 
 ### Run Automated Tests Locally
-Skylet includes 133 automated unit tests covering financial arithmetic precision, parser edge cases, Twelve Data HTTP status codes, Keychain security, all 16 focus timer lifecycle requirements, and UI button state transitions:
+Skylet includes 81 automated unit tests covering financial arithmetic precision, parser edge cases, Twelve Data HTTP status codes, Keychain security, and deterministic controllable clock provenance:
 
 ```bash
 swift run SkyletTestsRunner

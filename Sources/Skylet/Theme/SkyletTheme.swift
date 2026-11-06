@@ -22,25 +22,7 @@ public enum SkyletTheme {
     /// Soft sky highlight for subtle backgrounds and badges: #7DD3FC
     public static let lightSky = Color(red: 0.49, green: 0.83, blue: 0.99)
 
-    // MARK: - Solar Instrument Palette (Animated Sun & Focus Identity)
-
-    /// Primary radiant solar gold (#FFC644)
-    public static let solarGold = Color(red: 1.0, green: 0.776, blue: 0.267)
-
-    /// Deep energetic solar core amber (#FF8F1C)
-    public static let solarCore = Color(red: 1.0, green: 0.561, blue: 0.110)
-
-    /// Warm solar flare tint (#FFE082)
-    public static let solarFlare = Color(red: 1.0, green: 0.878, blue: 0.510)
-
-    /// Soft radiant solar aura for ambient glow
-    public static let solarGlow = Color(red: 1.0, green: 0.82, blue: 0.35).opacity(0.28)
-
-    /// Active beam highlight color
-    public static let solarRayActive = Color(red: 1.0, green: 0.80, blue: 0.30)
-
-    /// Dormant / inactive beam track color
-    public static let solarRayTrack = Color.white.opacity(0.10)
+    // MARK: - Dark Chrome Surface Hierarchy
 
     /// Midnight base surface: #0B1220
     public static let midnightSurface = Color(red: 0.043, green: 0.071, blue: 0.125)
@@ -53,10 +35,10 @@ public enum SkyletTheme {
 
     // MARK: - Restrained Semantic Status Tints
 
-    /// Restrained green for live quote and timer completion
+    /// Restrained green for live quote
     public static let statusLive = Color(red: 0.20, green: 0.78, blue: 0.50)
 
-    /// Restrained amber for delayed quotes or timer pause
+    /// Restrained amber for delayed quotes
     public static let statusDelayed = Color(red: 0.96, green: 0.72, blue: 0.25)
 
     /// Restrained blue/slate for daily reference rates
@@ -119,12 +101,6 @@ public enum SkyletTheme {
     /// Amount input text field font
     public static let inputFont = Font.system(size: 13, weight: .regular)
 
-    /// Focus timer large countdown display
-    public static let countdownFont = Font.system(size: 34, weight: .medium, design: .rounded)
-
-    /// Focus timer compact countdown display
-    public static let smallCountdownFont = Font.system(size: 17, weight: .semibold, design: .rounded)
-
     /// Section header and prominent row titles
     public static let headerFont = Font.system(size: 12, weight: .semibold)
 
@@ -142,12 +118,6 @@ public enum SkyletTheme {
 
     /// Micro font for badges and tags
     public static let microFont = Font.system(size: 9, weight: .medium)
-
-    /// Restrained uppercase session status badge (READY, FOCUSING, PAUSED, COMPLETED)
-    public static let statusBadgeFont = Font.system(size: 10, weight: .bold, design: .rounded)
-
-    /// Secondary focus timer subtitle font
-    public static let sessionSubtitleFont = Font.system(size: 11, weight: .medium, design: .rounded)
 
     // MARK: - Native DroppyKit Geometry & Continuous Radii
 
