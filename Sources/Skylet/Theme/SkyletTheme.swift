@@ -11,31 +11,75 @@ import DroppyKit
 
 /// Unified Design System for Skylet conforming to DroppyKit's design language.
 public enum SkyletTheme {
-    // MARK: - Figma Specification Palette
+    // MARK: - Native Droppy & Apple Liquid Glass Design System
 
-    /// Outer background: #1E1E1E
-    public static let outerBackground = Color(red: 0x1E/255.0, green: 0x1E/255.0, blue: 0x1E/255.0)
+    /// Droppy shelf translucent base
+    public static let shelfGlassBackground = Color.black.opacity(0.68)
 
-    /// Main panel surface: #414141
-    public static let mainPanel = Color(red: 0x41/255.0, green: 0x41/255.0, blue: 0x41/255.0)
+    /// Subtle frosted glass surface fill for inner cards
+    public static let glassCardBackground = Color.white.opacity(0.06)
 
-    /// Input accent pill: #C4FBFF (pale cyan)
-    public static let inputAccent = Color(red: 0xC4/255.0, green: 0xFB/255.0, blue: 0xFF/255.0)
+    /// Hairline glass rim for cards and containers
+    public static let glassCardBorder = Color.white.opacity(0.12)
 
-    /// Light controls: #D9D9D9
-    public static let lightControls = Color(red: 0xD9/255.0, green: 0xD9/255.0, blue: 0xD9/255.0)
+    /// Elevated glass surface under hover
+    public static let glassCardHover = Color.white.opacity(0.14)
 
-    /// Active provider status tint: #B3FC9C (light green)
-    public static let activeStatus = Color(red: 0xB3/255.0, green: 0xFC/255.0, blue: 0x9C/255.0)
+    /// Liquid Glass pill fill for search and controls
+    public static let glassPillBackground = Color.white.opacity(0.09)
 
-    /// Graph card background: #22242A
-    public static let graphBackground = Color(red: 0x22/255.0, green: 0x24/255.0, blue: 0x2A/255.0)
+    /// Liquid Glass pill border
+    public static let glassPillBorder = Color.white.opacity(0.16)
+
+    /// Elevated glass pill under hover
+    public static let glassPillHover = Color.white.opacity(0.18)
+
+    /// Apple Liquid Glass gradient for converted amount hero card
+    public static let glassConvertedGradient = LinearGradient(
+        colors: [
+            Color(red: 0.10, green: 0.72, blue: 0.60).opacity(0.38),
+            Color(red: 0.05, green: 0.42, blue: 0.50).opacity(0.20)
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
+    /// Luminous glass border for converted amount hero card
+    public static let glassConvertedBorder = LinearGradient(
+        colors: [
+            Color.white.opacity(0.35),
+            Color(red: 0.20, green: 0.85, blue: 0.75).opacity(0.25)
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
+    // MARK: - Legacy / Semantic Fallbacks (Transformed to Premium Glass)
+
+    /// Outer background: Native translucent notch backdrop
+    public static let outerBackground = Color.black.opacity(0.80)
+
+    /// Main panel surface: Frosted notch glass instead of opaque grey
+    public static let mainPanel = Color.black.opacity(0.65)
+
+    /// Input accent pill: Liquid Glass pill fill
+    public static let inputAccent = Color.white.opacity(0.10)
+
+    /// Light controls: Frosted glass chip fill
+    public static let lightControls = Color.white.opacity(0.08)
+
+    /// Active provider status tint: Apple Mint (#34D399)
+    public static let activeStatus = Color(red: 0.20, green: 0.83, blue: 0.60)
+
+    /// Graph card background: Frosted glass tile
+    public static let graphBackground = Color.white.opacity(0.05)
 
     /// Chart line color: Restrained coral/salmon (#F87171)
     public static let chartLine = Color(red: 0xF8/255.0, green: 0x71/255.0, blue: 0x71/255.0)
 
-    /// Dark text inside pale cyan inputs: #111827
-    public static let darkInputText = Color(red: 0x11/255.0, green: 0x18/255.0, blue: 0x27/255.0)
+    /// Pure crisp white text for controls
+    public static let darkInputText = Color.white
+
 
     // MARK: - Brand Palette (Sky-Blue Accent Ladder)
 

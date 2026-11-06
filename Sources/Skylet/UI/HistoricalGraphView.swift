@@ -10,6 +10,33 @@ import SwiftUI
 import AppKit
 import SkyletCore
 
+private enum ChartDateFormatterCache {
+    static let intradayTooltip: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "HH:mm EEE d MMM"
+        df.timeZone = TimeZone.current
+        return df
+    }()
+    static let standardTooltip: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "EEE d MMM"
+        df.timeZone = TimeZone.current
+        return df
+    }()
+    static let intradayAxis: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "HH:mm"
+        df.timeZone = TimeZone.current
+        return df
+    }()
+    static let standardAxis: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "d MMM"
+        df.timeZone = TimeZone.current
+        return df
+    }()
+}
+
 @MainActor
 final class HistoricalGraphViewModel: ObservableObject {
     @Published var currentSeries: CurrencyHistorySeries?
@@ -84,8 +111,16 @@ public struct HistoricalGraphView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .padding(isCompact ? 4 : 6)
-        .background(SkyletTheme.graphBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(
+            RoundedRectangle(cornerRadius: DroppyRadius.medium, style: .continuous)
+                .fill(Color.white.opacity(0.04))
+                .background(.ultraThinMaterial)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.medium, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: DroppyRadius.medium, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.5)
+        )
         .task(id: "\(baseCurrency.code)_\(quoteCurrency.code)_\(selectedRange.rawValue)") {
             await vm.loadHistory(
                 service: service,
@@ -99,7 +134,7 @@ public struct HistoricalGraphView: View {
     // MARK: - Range Picker Row
 
     private var rangePickerRow: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 3) {
             ForEach(CurrencyHistoryRange.allCases, id: \.self) { range in
                 let isSelected = selectedRange == range
                 Button {
@@ -108,10 +143,14 @@ public struct HistoricalGraphView: View {
                 } label: {
                     Text(range.rawValue)
                         .font(.system(size: 8.5, weight: isSelected ? .bold : .medium))
-                        .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.45))
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(isSelected ? Color.white.opacity(0.16) : Color.clear)
+                        .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.55))
+                        .padding(.horizontal, 4.5)
+                        .padding(.vertical, 2.5)
+                        .background(
+                            isSelected
+                                ? Color.white.opacity(0.22)
+                                : Color.white.opacity(0.04)
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 }
                 .buttonStyle(.plain)
@@ -182,21 +221,25 @@ public struct HistoricalGraphView: View {
                     let point = coordinates[hoverIdx]
                     let historyPt = points[hoverIdx]
 
-                    // Vertical guide line
+                    // Vertical guide line (hit testing disabled to prevent hover jitter)
                     Path { p in
                         p.move(to: CGPoint(x: point.x, y: 0))
                         p.addLine(to: CGPoint(x: point.x, y: chartH))
                     }
-                    .stroke(Color.white.opacity(0.20), style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
+                    .stroke(Color.white.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
+                    .allowsHitTesting(false)
 
                     // Highlighted circle dot
                     Circle()
                         .fill(SkyletTheme.chartLine)
                         .frame(width: 6, height: 6)
+                        .overlay(Circle().stroke(Color.white, lineWidth: 1))
                         .position(point)
+                        .allowsHitTesting(false)
 
                     // Tooltip badge
                     hoverTooltip(point: historyPt, coord: point, chartWidth: w)
+                        .allowsHitTesting(false)
                 }
             }
             .contentShape(Rectangle())
@@ -205,10 +248,14 @@ public struct HistoricalGraphView: View {
                 case .active(let location):
                     let clampedX = min(max(location.x - leftMargin, 0), chartW)
                     let fraction = clampedX / chartW
-                    let nearestIdx = Int(round(fraction * CGFloat(points.count - 1)))
-                    vm.hoveredPointIndex = min(max(nearestIdx, 0), points.count - 1)
+                    let nearestIdx = min(max(Int(round(fraction * CGFloat(points.count - 1))), 0), points.count - 1)
+                    if vm.hoveredPointIndex != nearestIdx {
+                        vm.hoveredPointIndex = nearestIdx
+                    }
                 case .ended:
-                    vm.hoveredPointIndex = nil
+                    if vm.hoveredPointIndex != nil {
+                        vm.hoveredPointIndex = nil
+                    }
                 }
             }
         }
@@ -252,30 +299,35 @@ public struct HistoricalGraphView: View {
         chartW: CGFloat,
         y: CGFloat
     ) -> some View {
-        let firstDate = points.first!.timestamp
-        let midDate = points[points.count / 2].timestamp
-        let lastDate = points.last!.timestamp
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = (selectedRange == .oneDay || selectedRange == .fiveDays) ? "HH:mm" : "d MMM"
-        formatter.timeZone = TimeZone.current
-
-        return ZStack {
-            Text(formatter.string(from: firstDate))
-                .font(.system(size: 7.5, weight: .regular))
-                .foregroundStyle(Color.white.opacity(0.35))
-                .position(x: leftMargin + 10, y: y + 4)
-
-            Text(formatter.string(from: midDate))
-                .font(.system(size: 7.5, weight: .regular))
-                .foregroundStyle(Color.white.opacity(0.35))
-                .position(x: leftMargin + chartW / 2, y: y + 4)
-
-            Text(formatter.string(from: lastDate))
-                .font(.system(size: 7.5, weight: .regular))
-                .foregroundStyle(Color.white.opacity(0.35))
-                .position(x: leftMargin + chartW - 10, y: y + 4)
+        guard let firstDate = points.first?.timestamp,
+              let lastDate = points.last?.timestamp else {
+            return AnyView(EmptyView())
         }
+        let midDate = points[points.count / 2].timestamp
+
+        let formatter = (selectedRange == .oneDay || selectedRange == .fiveDays)
+            ? ChartDateFormatterCache.intradayAxis
+            : ChartDateFormatterCache.standardAxis
+
+        return AnyView(
+            ZStack {
+                Text(formatter.string(from: firstDate))
+                    .font(.system(size: 7.5, weight: .regular))
+                    .foregroundStyle(Color.white.opacity(0.40))
+                    .position(x: leftMargin + 10, y: y + 4)
+
+                Text(formatter.string(from: midDate))
+                    .font(.system(size: 7.5, weight: .regular))
+                    .foregroundStyle(Color.white.opacity(0.40))
+                    .position(x: leftMargin + chartW / 2, y: y + 4)
+
+                Text(formatter.string(from: lastDate))
+                    .font(.system(size: 7.5, weight: .regular))
+                    .foregroundStyle(Color.white.opacity(0.40))
+                    .position(x: leftMargin + chartW - 10, y: y + 4)
+            }
+            .allowsHitTesting(false)
+        )
     }
 
     // MARK: - Hover Tooltip
@@ -285,32 +337,37 @@ public struct HistoricalGraphView: View {
         coord: CGPoint,
         chartWidth: CGFloat
     ) -> some View {
-        let df = DateFormatter()
-        df.dateFormat = (selectedRange == .oneDay || selectedRange == .fiveDays) ? "HH:mm EEE d MMM" : "EEE d MMM"
-        df.timeZone = TimeZone.current
+        let df = (selectedRange == .oneDay || selectedRange == .fiveDays)
+            ? ChartDateFormatterCache.intradayTooltip
+            : ChartDateFormatterCache.standardTooltip
         let dateString = df.string(from: point.timestamp)
         let rateString = CurrencyFormatter.formatRateValue(point.rate)
 
         let tooltipWidth: CGFloat = 85
         let xPos = min(max(coord.x, tooltipWidth / 2 + 2), chartWidth - tooltipWidth / 2 - 2)
 
-        return VStack(spacing: 1) {
+        return VStack(spacing: 1.5) {
             Text(rateString)
-                .font(.system(size: 8, weight: .bold, design: .rounded))
+                .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                .monospacedDigit()
                 .foregroundStyle(Color.white)
             Text(dateString)
-                .font(.system(size: 6.5, weight: .regular))
-                .foregroundStyle(Color.white.opacity(0.65))
+                .font(.system(size: 7, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.70))
         }
-        .padding(.horizontal, 5)
-        .padding(.vertical, 2.5)
-        .background(Color(red: 0x11/255.0, green: 0x18/255.0, blue: 0x27/255.0).opacity(0.92))
-        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(
+            Color.black.opacity(0.85)
+                .background(.ultraThinMaterial)
         )
-        .position(x: xPos, y: max(coord.y - 16, 10))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.20), lineWidth: 0.5)
+        )
+        .position(x: xPos, y: max(coord.y - 18, 12))
+        .allowsHitTesting(false)
     }
 
     // MARK: - Paths

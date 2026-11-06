@@ -27,8 +27,13 @@ public struct SkyletRootView: View {
 
     public var body: some View {
         ZStack {
-            // Main Panel Background (#414141 from Figma spec)
-            SkyletTheme.mainPanel
+            // Apple-grade Liquid Glass Backdrop
+            Color.black.opacity(0.70)
+                .background(.ultraThinMaterial)
+
+            // Subtle interior frosted highlight
+            SkyletTheme.shelfShape(usesIslandCurvature: context.usesIslandCurvature)
+                .fill(Color.white.opacity(0.02))
 
             // Active View
             Group {
@@ -44,6 +49,10 @@ public struct SkyletRootView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipShape(SkyletTheme.shelfShape(usesIslandCurvature: context.usesIslandCurvature))
+        .overlay(
+            SkyletTheme.shelfShape(usesIslandCurvature: context.usesIslandCurvature)
+                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+        )
         .animation(SkyletTheme.quickAnimation, value: droplet.selectedMode)
     }
 }

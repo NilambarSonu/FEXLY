@@ -18,6 +18,7 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
     private var host: DropletHost?
     private var cancellables = Set<AnyCancellable>()
     private let activitySubject = CurrentValueSubject<LiveActivityState?, Never>(nil)
+    private var liveActivityTimerTask: Task<Void, Never>?
 
     public let rateService: CurrencyRateService
     public let historyService: CurrencyHistoryService
@@ -97,6 +98,8 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
     }
 
     public func deactivate() {
+        liveActivityTimerTask?.cancel()
+        liveActivityTimerTask = nil
         cancellables.removeAll()
         latestConversion = nil
         activitySubject.send(nil)
@@ -106,6 +109,18 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
     public func updateLatestConversion(_ result: CurrencyConversionResult) {
         self.latestConversion = result
         publishAppropriateLiveActivity()
+
+        // As requested by user: Live Activity stays visible for 5 seconds after conversion, then disappears
+        liveActivityTimerTask?.cancel()
+        liveActivityTimerTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.dismissLiveActivity()
+        }
+    }
+
+    public func dismissLiveActivity() {
+        activitySubject.send(nil)
     }
 
     private func publishAppropriateLiveActivity() {
@@ -163,15 +178,15 @@ extension SkyletDroplet: LiveActivityProviding {
             Group {
                 if let conv = latestConversion {
                     Text(CurrencyFormatter.format(amount: conv.sourceAmount, currency: conv.sourceCurrency))
-                        .font(.system(size: DroppyLiveActivityMetrics.labelFontSize, weight: .semibold, design: .rounded))
+                        .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .minimumScaleFactor(0.85)
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+                        .padding(.trailing, DroppySpacing.xs)
                 } else {
-                    HStack(spacing: 3) {
-                        Image(systemName: "indianrupeesign.circle.fill")
-                            .font(.system(size: DroppyLiveActivityMetrics.iconSize, weight: .semibold))
-                            .foregroundStyle(SkyletTheme.skyBlue)
-                    }
+                    EmptyView()
                 }
             }
         )
@@ -182,9 +197,13 @@ extension SkyletDroplet: LiveActivityProviding {
             Group {
                 if let conv = latestConversion {
                     Text(CurrencyFormatter.format(amount: conv.targetAmount, currency: conv.targetCurrency))
-                        .font(.system(size: DroppyLiveActivityMetrics.labelFontSize, weight: .semibold, design: .rounded))
+                        .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .minimumScaleFactor(0.85)
                         .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+                        .padding(.leading, DroppySpacing.xs)
                 } else {
                     EmptyView()
                 }

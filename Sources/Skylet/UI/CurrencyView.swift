@@ -79,12 +79,12 @@ public struct CurrencyView: View {
             }
             .padding(.horizontal, 4)
 
-            // Large Pale Cyan Rounded Search / Input Pill
+            // Large Apple Liquid Glass Search Capsule
             HStack(spacing: 8) {
-                TextField("67.87 in USD", text: $inputText)
+                TextField("e.g. 100 USD or €49.99", text: $inputText)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(SkyletTheme.darkInputText)
+                    .font(.system(size: 14.5, weight: .medium, design: .rounded))
+                    .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
                     .focused($isSearchFocused)
                     .onSubmit {
                         submitInput()
@@ -94,15 +94,23 @@ public struct CurrencyView: View {
                     submitInput()
                 } label: {
                     SkyletIcon.SearchShape()
-                        .stroke(SkyletTheme.darkInputText, lineWidth: 2)
-                        .frame(width: 17, height: 17)
+                        .stroke(isSearchFocused ? Color.white : Color.white.opacity(0.65), lineWidth: 1.8)
+                        .frame(width: 16, height: 16)
                 }
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(SkyletTheme.inputAccent)
-            .clipShape(Capsule())
+            .background(
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(isSearchFocused ? 0.14 : 0.09))
+                    .background(.ultraThinMaterial)
+            )
+            .clipShape(Capsule(style: .continuous))
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(isSearchFocused ? SkyletTheme.skyBlue.opacity(0.60) : Color.white.opacity(0.16), lineWidth: 0.5)
+            )
 
             // Quick Currency Shortcut Chips
             VStack(spacing: 6) {
@@ -137,7 +145,7 @@ public struct CurrencyView: View {
         VStack(spacing: 8) {
             // Upper Row: Amount Pill (Left) & Rate Formula / Status (Right)
             HStack(alignment: .center, spacing: 10) {
-                // Source Amount Pill in Pale Cyan
+                // Source Amount Pill in Apple Liquid Glass
                 HStack(spacing: 6) {
                     let sourceFormatted = CurrencyFormatter.format(
                         amount: conversionResult?.sourceAmount ?? 0,
@@ -151,8 +159,8 @@ public struct CurrencyView: View {
                         }
                     } label: {
                         Text(sourceFormatted)
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundStyle(SkyletTheme.darkInputText)
+                            .font(.system(size: 14.5, weight: .bold, design: .rounded))
+                            .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
                     }
                     .buttonStyle(.plain)
                     .help("Click to edit amount")
@@ -164,7 +172,7 @@ public struct CurrencyView: View {
                         swapCurrencies()
                     } label: {
                         SkyletIcon.RotateShape()
-                            .stroke(SkyletTheme.darkInputText, lineWidth: 1.8)
+                            .stroke(Color.white.opacity(0.85), lineWidth: 1.8)
                             .frame(width: 14, height: 14)
                             .rotationEffect(.degrees(isRotating))
                     }
@@ -173,8 +181,16 @@ public struct CurrencyView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
-                .background(SkyletTheme.inputAccent)
-                .clipShape(Capsule())
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.white.opacity(0.10))
+                        .background(.ultraThinMaterial)
+                )
+                .clipShape(Capsule(style: .continuous))
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                )
                 .frame(maxWidth: isCompact ? .infinity : 155)
 
                 Spacer(minLength: 0)
@@ -239,7 +255,7 @@ public struct CurrencyView: View {
         .padding(.top, 2)
     }
 
-    // MARK: - Large Converted Amount Card
+    // MARK: - Large Converted Amount Card (Apple Liquid Glass)
 
     private var convertedAmountCard: some View {
         let targetFormatted = CurrencyFormatter.format(
@@ -260,43 +276,62 @@ public struct CurrencyView: View {
             }
         } label: {
             ZStack {
-                // Cyan / Teal Gradient Background matching Figma
-                LinearGradient(
-                    colors: [
-                        Color(red: 0x5E/255.0, green: 0xEA/255.0, blue: 0xD4/255.0),
-                        Color(red: 0x2D/255.0, green: 0xD4/255.0, blue: 0xBF/255.0)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                // Apple Liquid Glass Emerald / Aurora Gradient
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.10, green: 0.72, blue: 0.60).opacity(0.38),
+                                Color(red: 0.05, green: 0.42, blue: 0.50).opacity(0.20)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .background(.ultraThinMaterial)
+
+                // Luminous Glass Stroke Rim
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.35),
+                                Color(red: 0.20, green: 0.85, blue: 0.75).opacity(0.25)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.5
+                    )
 
                 VStack(spacing: 2) {
                     if copiedConfirmation {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 11, weight: .bold))
-                            Text("Copied")
-                                .font(.system(size: 12, weight: .semibold))
+                            Text("Copied to Clipboard")
+                                .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                         }
-                        .foregroundStyle(Color(red: 0x06/255.0, green: 0x4E/255.0, blue: 0x3B/255.0))
+                        .foregroundStyle(Color.white)
                     } else {
                         Text(targetFormatted)
-                            .font(.system(size: isCompact ? 18 : 22, weight: .bold, design: .serif))
-                            .foregroundStyle(Color(red: 0x04/255.0, green: 0x2F/255.0, blue: 0x2E/255.0))
+                            .font(.system(size: isCompact ? 18 : 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                             .padding(.horizontal, 6)
+                            .shadow(color: Color.black.opacity(0.35), radius: 3, x: 0, y: 1)
                     }
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 2)
+            .shadow(color: Color.black.opacity(0.20), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .help("Click to copy converted amount")
     }
 
-    // MARK: - Quick Currency Chip
+    // MARK: - Quick Currency Chip (Apple Liquid Glass)
 
     private func quickCurrencyChip(code: CurrencyCode) -> some View {
         let isSelected = (code == sourceCurrency || code == targetCurrency)
@@ -324,10 +359,22 @@ public struct CurrencyView: View {
         } label: {
             Text(code.rawValue)
                 .font(.system(size: 9.5, weight: isSelected ? .bold : .medium))
-                .foregroundStyle(isSelected ? Color.black : Color.black.opacity(0.85))
+                .foregroundStyle(isSelected ? Color.white : AdaptiveColors.notchSurfaceSecondaryText)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
-                .background(isSelected ? Color.white : SkyletTheme.lightControls)
+                .padding(.vertical, 4.5)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(isSelected ? Color.white.opacity(0.24) : Color.white.opacity(0.08))
+                        .background(.ultraThinMaterial)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(isSelected ? Color.white.opacity(0.35) : Color.white.opacity(0.08), lineWidth: 0.5)
+                )
+        }
+        .buttonStyle(.plain)
+    }
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         }
         .buttonStyle(.plain)

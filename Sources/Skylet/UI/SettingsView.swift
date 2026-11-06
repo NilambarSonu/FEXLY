@@ -154,7 +154,7 @@ public struct SettingsView: View {
                     .foregroundStyle(Color.white.opacity(0.85))
                     .frame(width: 52, alignment: .leading)
 
-                // Light grey text field matching Figma reference
+                // Apple Liquid Glass API Key Field
                 HStack(spacing: 4) {
                     Group {
                         if isRevealed {
@@ -165,7 +165,7 @@ public struct SettingsView: View {
                     }
                     .textFieldStyle(.plain)
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(SkyletTheme.darkInputText)
+                    .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
                     .onSubmit { saveAPIKey() }
 
                     // Eye Icon (reveal / hide)
@@ -174,11 +174,11 @@ public struct SettingsView: View {
                     } label: {
                         if isRevealed {
                             SkyletIcon.EyeSlashShape()
-                                .stroke(Color.black.opacity(0.75), lineWidth: 1.5)
+                                .stroke(Color.white.opacity(0.80), lineWidth: 1.5)
                                 .frame(width: 13, height: 13)
                         } else {
                             SkyletIcon.EyeShape()
-                                .stroke(Color.black.opacity(0.75), lineWidth: 1.5)
+                                .stroke(Color.white.opacity(0.80), lineWidth: 1.5)
                                 .frame(width: 13, height: 13)
                         }
                     }
@@ -186,9 +186,17 @@ public struct SettingsView: View {
                     .help(isRevealed ? "Hide key" : "Show key")
                 }
                 .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(SkyletTheme.lightControls)
+                .padding(.vertical, 4.5)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.white.opacity(0.10))
+                        .background(.ultraThinMaterial)
+                )
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
 
                 // Info Button
                 Button {
@@ -241,12 +249,20 @@ public struct SettingsView: View {
             } label: {
                 let symbol = CurrencyMetadata.symbol(for: droplet.defaultInputCurrency)
                 Text("\(symbol) \(droplet.defaultInputCurrency.rawValue)")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.black)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3.5)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.white.opacity(0.16))
+                            .background(.ultraThinMaterial)
+                    )
+                    .clipShape(Capsule(style: .continuous))
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                    )
             }
             .buttonStyle(.plain)
         }
@@ -267,12 +283,20 @@ public struct SettingsView: View {
             } label: {
                 let symbol = CurrencyMetadata.symbol(for: droplet.localTargetCurrency)
                 Text("\(symbol) \(droplet.localTargetCurrency.rawValue)")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.black)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3.5)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.white.opacity(0.16))
+                            .background(.ultraThinMaterial)
+                    )
+                    .clipShape(Capsule(style: .continuous))
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+                    )
             }
             .buttonStyle(.plain)
         }
