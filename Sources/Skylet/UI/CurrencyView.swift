@@ -375,10 +375,6 @@ public struct CurrencyView: View {
         }
         .buttonStyle(.plain)
     }
-                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-        }
-        .buttonStyle(.plain)
-    }
 
     // MARK: - Provider Status Badge
 

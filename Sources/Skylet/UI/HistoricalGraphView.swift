@@ -112,13 +112,13 @@ public struct HistoricalGraphView: View {
         }
         .padding(isCompact ? 4 : 6)
         .background(
-            RoundedRectangle(cornerRadius: DroppyRadius.medium, style: .continuous)
+            RoundedRectangle(cornerRadius: SkyletTheme.cardRadius, style: .continuous)
                 .fill(Color.white.opacity(0.04))
                 .background(.ultraThinMaterial)
         )
-        .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.medium, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkyletTheme.cardRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: DroppyRadius.medium, style: .continuous)
+            RoundedRectangle(cornerRadius: SkyletTheme.cardRadius, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.5)
         )
         .task(id: "\(baseCurrency.code)_\(quoteCurrency.code)_\(selectedRange.rawValue)") {
