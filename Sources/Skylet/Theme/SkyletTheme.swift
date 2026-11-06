@@ -197,6 +197,12 @@ public enum SkyletTheme {
     /// Full-bleed island shelf widget corner radius (26.5pt continuous)
     public static let shelfFullBleedCornerRadius: CGFloat = DroppyShellMetrics.shelfFullBleedCornerRadius
 
+    /// Standard card corner radius (12pt continuous)
+    public static let cardRadius: CGFloat = 12.0
+
+    /// Standard pill / chip corner radius (6pt continuous)
+    public static let pillRadius: CGFloat = 6.0
+
     /// Standard container shape for the widget
     public static func shelfShape(usesIslandCurvature: Bool = false) -> RoundedRectangle {
         RoundedRectangle(
