@@ -736,7 +736,7 @@ public struct CurrencyView: View {
 // MARK: - Card Frame Preference Key (Item 1)
 
 private struct CardFramePreferenceKey: PreferenceKey {
-    static var defaultValue: [CurrencyCode: CGRect] = [:]
+    static let defaultValue: [CurrencyCode: CGRect] = [:]
     static func reduce(value: inout [CurrencyCode: CGRect], nextValue: () -> [CurrencyCode: CGRect]) {
         value.merge(nextValue()) { $1 }
     }
