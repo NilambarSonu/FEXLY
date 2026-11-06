@@ -2,8 +2,8 @@
 //  SkyletRootView.swift
 //  Skylet
 //
-//  Skylet Root Widget Composition conforming to DroppyKit Design Guidelines.
-//  Quiet Precision. Instant Intelligence.
+//  Figma-faithful root container encasing Currency and Settings views
+//  within the Droppy host container geometry.
 //
 
 import SwiftUI
@@ -14,13 +14,6 @@ public enum SkyletMode: String, CaseIterable, Identifiable {
     case settings = "Settings"
 
     public var id: String { rawValue }
-
-    public var iconName: String {
-        switch self {
-        case .currency: return "indianrupeesign.circle.fill"
-        case .settings: return "gearshape.fill"
-        }
-    }
 }
 
 public struct SkyletRootView: View {
@@ -33,11 +26,11 @@ public struct SkyletRootView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: DroppySpacing.xs) {
-            // Header Row (Standard Droppy layout)
-            headerRow
+        ZStack {
+            // Main Panel Background (#414141 from Figma spec)
+            SkyletTheme.mainPanel
 
-            // Content branching on selected mode and compactness
+            // Active View
             Group {
                 switch droplet.selectedMode {
                 case .currency:
@@ -46,76 +39,11 @@ public struct SkyletRootView: View {
                     SettingsView(droplet: droplet)
                 }
             }
+            .padding(context.contentInsets)
             .transition(.opacity)
-
-            Spacer(minLength: 0)
         }
-        .padding(context.contentInsets)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipShape(SkyletTheme.shelfShape(usesIslandCurvature: context.usesIslandCurvature))
         .animation(SkyletTheme.quickAnimation, value: droplet.selectedMode)
-    }
-
-    // MARK: - Header Row
-
-    private var headerRow: some View {
-        HStack(spacing: DroppySpacing.xsm) {
-            // App symbol and title
-            Image(systemName: "sparkles")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(SkyletTheme.skyBlue)
-
-            Text("Skylet")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(SkyletTheme.primaryText)
-
-            Spacer(minLength: DroppySpacing.md)
-
-            // Mode switcher / settings toggle
-            if !context.isCompact {
-                HStack(spacing: 2) {
-                    ForEach(SkyletMode.allCases) { mode in
-                        let isSelected = droplet.selectedMode == mode
-                        Button {
-                            withAnimation(SkyletTheme.quickAnimation) {
-                                droplet.selectedMode = mode
-                            }
-                        } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: mode.iconName)
-                                    .font(.system(size: 9))
-                                Text(mode.rawValue)
-                                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
-                            }
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(isSelected ? SkyletTheme.skyBlue.opacity(0.22) : Color.clear)
-                            .foregroundStyle(isSelected ? SkyletTheme.skyBlue : SkyletTheme.secondaryText)
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(2)
-                .background(SkyletTheme.controlBackground)
-                .clipShape(Capsule())
-            } else {
-                // Paired compact toggle
-                Button {
-                    withAnimation(SkyletTheme.quickAnimation) {
-                        droplet.selectedMode = (droplet.selectedMode == .currency) ? .settings : .currency
-                    }
-                } label: {
-                    Image(systemName: droplet.selectedMode.iconName)
-                        .font(.system(size: 10))
-                        .foregroundStyle(SkyletTheme.skyBlue)
-                        .padding(4)
-                        .background(SkyletTheme.controlBackground)
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .help(droplet.selectedMode == .currency ? "Configure Twelve Data API Key" : "Back to Currency Converter")
-            }
-        }
     }
 }

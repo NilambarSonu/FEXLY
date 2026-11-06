@@ -1,16 +1,16 @@
 # Skylet ✦
 
 <p align="center">
-  <img src="shots/icon_master_1024.png" alt="Skylet Icon" width="108" height="108" />
+  <img src="shots/shot_10_app_icon.png" alt="Skylet Icon" width="280" />
 </p>
 
 <p align="center">
-  <strong>A premium native macOS DroppyKit utility featuring real-time foreign exchange intelligence and honest rate provenance.</strong>
+  <strong>A premium native macOS DroppyKit utility featuring Figma-faithful currency conversion, live Twelve Data forex intelligence, and interactive historical rate trend graphs.</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/NilambarSonu/SKYLET/releases/latest"><img src="https://img.shields.io/github/v/release/NilambarSonu/SKYLET?color=38BDF8&label=release" alt="Latest Release" /></a>
-  <a href="https://github.com/NilambarSonu/SKYLET/actions/workflows/build.yml"><img src="https://github.com/NilambarSonu/SKYLET/actions/workflows/build.yml/badge.svg" alt="Build Status" /></a>
+  <a href="https://github.com/NilambarSonu/SKYLET/actions/workflows/build-validate.yml"><img src="https://github.com/NilambarSonu/SKYLET/actions/workflows/build-validate.yml/badge.svg" alt="Build Status" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%2014.0%2B-0B1220" alt="Platform macOS 14+" />
   <img src="https://img.shields.io/badge/Droppy-15.3.0%2B-38BDF8" alt="Droppy 15.3.0+" />
   <img src="https://img.shields.io/badge/architecture-universal%20(arm64%20%2B%20x86__64)-159BE8" alt="Universal Architecture" />
@@ -21,32 +21,33 @@
 
 ### [➔ Download Latest SKYLET Release](https://github.com/NilambarSonu/SKYLET/releases/latest)
 
-Skylet lives directly inside [Droppy](https://getdroppy.app)’s Dynamic Island and shelf. It delivers dedicated native macOS currency intelligence designed around **Quiet Precision. Instant Intelligence**:
+Skylet lives directly inside [Droppy](https://getdroppy.app)’s Dynamic Island and shelf. It delivers dedicated native macOS currency intelligence designed around **Figma-Faithful Design & Real-Time Financial Precision**:
 
-- **Real-Time Forex Intelligence**: Near-instant conversion to Indian Rupees (INR) and global currencies using live quotes from Twelve Data Forex API with Apple Keychain security, honest quote timestamps, and instant clipboard import.
-- **Honest Provenance & Freshness**: Absolute transparency with a 5-tier freshness model (`LIVE`, `DELAYED`, `CACHED`, `DAILY REFERENCE`, `STALE`) so you always know the exact age and origin of every quote.
+- **Figma Design Fidelity**: Charcoal panel (`#414141`), large pale cyan search capsule (`#C4FBFF`), 2 rows of quick currency shortcut chips (`USD`, `INR`, `EUR`, `GBP`, `AED`, `CAD`, `AUD`, `SGD`, `JPY`, `CHF`), source amount pill with swap/refresh rotation, rate formula equation, and large cyan/teal converted amount card.
+- **Historical FX Graph Engine**: Multi-range trend analysis (`1D`, `5D`, `1M`, `1Y`, `5Y`, `Max`) powered by Twelve Data `GET /time_series` with fallback to European Central Bank daily reference rates, smooth curve rendering, subtle gridlines, and interactive hover tooltips.
+- **Real-Time Forex Intelligence**: Near-instant conversion to Indian Rupees (INR) and world currencies using live Twelve Data quotes with Apple Keychain security, honest quote timestamps, and live notch wing integration.
+- **Honest Provenance & Freshness**: Absolute transparency with verified status tracking (`• API Active`, `Delayed`, `Cached`, `Daily Reference`, `Stale`) so you always know the exact age and origin of every quote.
 - **Zero Roundoff Errors**: Pure Decimal-safe financial math preventing floating-point rounding issues.
 
 ---
 
 ## Key Features
 
-### 🪙 Currency Intelligence & Real-Time FX
-- **Twelve Data Real-Time Forex API**: High-frequency live exchange rates for `USD/INR`, `EUR/INR`, `GBP/INR`, and over 1,500 currency pairs.
-- **Apple macOS Keychain Security**: Stores your Twelve Data API key directly in macOS Keychain (`kSecClassGenericPassword`). Never logged, never shared, and never committed to source control.
-- **Honest Provenance & Freshness Tracking**: Rates explicitly declare their true origin:
-  - `LIVE`: Verified quote from Twelve Data received within the last 15 minutes.
-  - `DELAYED`: Active quote during closed market hours or weekend halts (up to 72h).
-  - `CACHED`: Served from local 5-minute pair cache (never falsely marked as live).
-  - `DAILY REFERENCE`: Fallback reference rate from ExchangeRate-API or Frankfurter (ECB).
-  - `STALE`: Quote age exceeding 72 hours.
-  - `UNAVAILABLE`: Complete network failure.
-- **Pure Decimal-Safe Arithmetic**: Financial conversions execute exclusively through Foundation `Decimal` (`NSDecimalMultiply`) preventing floating-point roundoff errors.
-- **Searchable Currency Directory**: Built-in in-place overlay (`CurrencySelectorView`) with instant filtering by country, ISO currency code, symbol, or full name, with popular quick-pills (`USD`, `EUR`, `GBP`, `AED`, `CAD`, `AUD`, `SGD`, `JPY`, `SAR`, `CNY`).
-- **Interactive Directional Currency Swap**: Instant reversal between foreign currency and INR with smooth $180^\circ$ rotation spring micro-interaction.
-- **Live Rate Refresh**: Manual refresh button with $360^\circ$ rotation animation and concurrent request deduplication.
-- **Clipboard Workflow**: Instant conversion of amounts on your clipboard with one click — zero continuous background clipboard snooping.
-- **One-Click Copy**: Copies clean formatted summary (e.g. `100.00 USD = ₹8,350.00 (Illustrative example; real quotes use live market rate)`) with immediate in-place checkmark feedback.
+### 🪙 Figma-Faithful Currency Converter & FX History
+- **Screen A (Currency Input)**: Clean dark charcoal canvas (`#414141`), upper-left settings gear, upper-right verified `• API Active` badge, large pale cyan search pill (`#C4FBFF`) with dark text (`#111827`), and quick currency shortcuts for top global currencies.
+- **Screen B (Conversion Result)**:
+  - **Source Amount Pill**: Prominent pale cyan pill (`$ 67.87`) with circular arrow swap/refresh button to reverse conversion direction or re-edit.
+  - **Live Rate Formula**: Displays live exchange equation (e.g. `$1 = ₹94.47`).
+  - **Historical Trend Chart**: Dark card (`#22242A`) with range selectors (`1D`, `5D`, `1M`, `1Y`, `5Y`, `Max`), smooth coral curve, area fill, Y-axis levels, X-axis date stamps, and interactive hover inspection displaying exact rate and date tooltip (`96.34 Mon 5 Oct`).
+  - **Large Converted Amount Card**: Radiant cyan/teal gradient card displaying bold formatted output (`₹6411.37`) with one-click copy and instant haptic/visual confirmation.
+- **Screen C (Settings Panel)**: Direct API key management with eye reveal/hide toggle, info popover, default input currency picker, local target currency picker, and graph enable/disable switch.
+- **Screen D (Notch Live Activity)**: Compact glanceable display showing source amount (`$ 67.87`) on the leading wing and converted amount (`₹6411.37`) on the trailing wing when the cursor leaves the notch.
+
+### 📈 Historical FX Graph Architecture
+- **Twelve Data Time Series**: Connects to `GET https://api.twelvedata.com/time_series` with header authentication (`Authorization: apikey ...`) mapping UI ranges to optimal intervals (`15min` for 1D, `1h` for 5D, `1day` for 1M/1Y, `1week` for 5Y, `1month` for Max).
+- **Frankfurter ECB Fallback**: Keyless open historical reference rates for daily/weekly/monthly ranges (`1M`, `1Y`, `5Y`, `Max`), with honest rejection of intraday ranges (`1D`, `5D`) when no Twelve Data key is configured.
+- **Actor-Based History Cache**: Dedicated memory and disk persistence with interval-tailored TTLs (5m for intraday, 12h for 1M/1Y, 24h for 5Y/Max) and concurrent request deduplication.
+- **Graceful Stale Retention**: Never leaves the user with an empty screen during offline periods or provider rate limits.
 
 ### 🏝️ Dynamic Island & Shelf Integration
 - **Continuous Notch Curvature**: Perfectly shaped with `18pt` shelf and `26.5pt` island radii, eliminating protruding sharp corners.

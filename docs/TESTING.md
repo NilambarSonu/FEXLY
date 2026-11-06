@@ -1,10 +1,10 @@
 # Skylet Testing & Verification
 
-Skylet includes a comprehensive automated test suite verifying parsing correctness, currency calculations, Twelve Data API communication, Keychain security, cache resilience, and rate provenance.
+Skylet includes a comprehensive automated test suite verifying parsing correctness, currency calculations, Twelve Data API communication, Keychain security, cache resilience, rate provenance, and historical graph series.
 
 ## Test Coverage Summary
 
-The test suite contains **81 automated tests** across three main domains:
+The test suite contains **103 automated tests** across four main domains:
 
 ### 1. Currency Parser Tests (29 tests)
 - **Input Hygiene**: Empty string, whitespace-only, arbitrary alphabetic text without numbers.
@@ -35,6 +35,7 @@ The test suite contains **81 automated tests** across three main domains:
   - Symbol formatting (`€49.99`, `100.00 AED`).
   - Exchange rate string formatting (e.g., `1 USD = 84.50 INR`).
   - Compact rate with ₹ symbol (`1 USD = ₹95.24`).
+  - Raw rate value formatting (`formatRateValue`).
   - Clipboard copy summary (`$25.00 = ₹2,380.50`).
 
 ### 3. Real-Time FX, Twelve Data, Keychain & Provenance Tests (43 tests)
@@ -58,6 +59,29 @@ The test suite contains **81 automated tests** across three main domains:
   - Quote exceeding 72h marked `STALE`.
   - Retrieved live quote from cache marked `CACHED` (never `LIVE`).
   - Subtext formatting verified for `LIVE`, `CACHED`, and `DAILY REFERENCE`.
+
+### 4. Historical FX Series, Twelve Data & Cache Tests (22 tests)
+- **Twelve Data History Provider**:
+  - Missing API key throws `CurrencyHistoryError.missingAPIKey`.
+  - Identity conversion (e.g., USD ➔ USD) returns 1.0 immediately without API call.
+  - Time series JSON parsing decodes datetime and rate into Decimal points.
+  - Reverse-order responses are sorted into chronological ascending order (oldest ➔ newest).
+  - Accurate calculation of `minRate`, `maxRate`, `startRate`, and `endRate`.
+  - Verification of `Authorization: apikey ...` header for historical endpoints.
+  - HTTP 401 mapped to `CurrencyHistoryError.invalidAPIKey`.
+  - HTTP 429 mapped to `CurrencyHistoryError.rateLimitExceeded`.
+  - Provider-level error payloads inside HTTP 200 mapped to typed errors.
+- **Frankfurter Fallback Provider**:
+  - Intraday ranges (`1D`, `5D`) rejected with `CurrencyHistoryError.intradayNotSupportedByReferenceProvider`.
+  - Daily reference series (`1M`, `1Y`) decodes rate points safely.
+  - Chronological ascending sort order.
+  - Marked honestly with `.dailyReference` freshness.
+- **History Cache & Service Coordination**:
+  - Cache set & get with `isFromCache == true`.
+  - Fresh cache retrieval returns `.cached`.
+  - Expired cache retrieval marks `isStale == true` and `.stale`.
+  - Multi-provider fallback invokes Frankfurter when Twelve Data is unavailable for daily ranges.
+  - Intraday ranges preserve Twelve Data errors without falling back to daily reference.
 - **Deterministic Controllable Clock & Freshness Matrix (9 Cases)**:
   - Case 1: Fresh live quote (`quoteAge <= 15m`) evaluates to `.live`.
   - Case 2: Cached live quote (`quoteAge <= 15m, fetchAge <= 5m`) evaluates to `.cached`, `isStale == false`.

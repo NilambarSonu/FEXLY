@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-11-06
+
+### Status
+Figma-Faithful Currency Converter UI & Historical FX Graph Engine.
+
+### Highlights
+- **Figma Design Implementation**: Faithfully translated user-supplied design specifications into a native macOS DroppyKit experience:
+  - **Screen A (Currency Input)**: Dark charcoal container (`#414141`), upper-left gear button, upper-right verified `• API Active` status, pale cyan search capsule (`#C4FBFF`) with dark text (`#111827`), and 2 rows of quick currency shortcut chips (`USD`, `INR`, `EUR`, `GBP`, `AED`, `CAD`, `AUD`, `SGD`, `JPY`, `CHF`).
+  - **Screen B (Conversion Result)**: Source amount pill (`$ 67.87`) with currency swap/refresh, live rate formula (`$1 = ₹94.47`), lower-left historical trend graph card (`#22242A`), and lower-right converted amount card (`₹6411.37`) in cyan/teal gradient.
+  - **Screen C (Settings)**: Centered title, API key text field with eye reveal/hide toggle and info popover, default input currency picker, local target currency picker, and graph enable/disable switch.
+  - **Screen D (Live Activity / Notch)**: High-contrast compact display surfacing source amount (`$ 67.87`) on the leading wing and converted amount (`₹6411.37`) on the trailing wing.
+- **Historical FX Graph Engine**:
+  - `TwelveDataHistoryProvider`: Queries `GET https://api.twelvedata.com/time_series` with header authentication (`Authorization: apikey ...`) supporting intraday (`1D`, `5D`) and long-range (`1M`, `1Y`, `5Y`, `Max`) data series.
+  - `FrankfurterHistoryProvider`: Keyless fallback using European Central Bank (ECB) daily reference rates for non-intraday ranges (`1M`, `1Y`, `5Y`, `Max`).
+  - `CurrencyHistoryCache`: Persistent actor-based caching with range-specific TTLs (5m for intraday, 12h for 1M/1Y, 24h for 5Y/Max) and request deduplication.
+  - `CurrencyHistoryService`: Multi-provider coordinator enforcing provenance integrity, honest error handling, and graceful stale fallback.
+- **Interactive Historical Chart**:
+  - Native Swift Canvas/Path graph with smooth line curve, area gradient fill, subtle gridlines, Y-axis rate scales, and X-axis date stamps.
+  - Interactive hover/cursor inspection showing selected point markers and rate/date tooltip badges (`96.34 Mon 5 Oct`).
+- **New App Icon Master**:
+  - Integrated the user's 3D dual-currency coin artwork featuring a lustrous gold USD top surface and polished silver Rupee underside (`mark.png` 1024×1024).
+- **CI Harness Script Hardening**:
+  - Corrected DroppyKit CLI path resolution in `ci/run-harness-checks.sh` to check `$DROPPYKIT_BIN`, `PATH`, and `$DROPPYKIT_PATH/Scripts/droppykit`.
+  - Enforced strict failure criteria: missing report, invalid JSON, `unavailable` status, missing surfaces, or 0-byte screenshots now fail immediately.
+  - Updated release title in `.github/workflows/release.yml`.
+- **Expanded Test Suite**:
+  - Expanded automated test runner from 81 to **103 unit tests** (100% pass rate) with full coverage for historical provider decoders, sorting, caching, and fallback policies.
+
+---
+
 ## [1.2.0] - 2026-11-06
 
 ### Status

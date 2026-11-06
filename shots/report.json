@@ -1,0 +1,12 @@
+{
+  "status": "completed",
+  "timestamp": "2026-11-06T06:38:50Z",
+  "surfaces": [
+    { "surface": "shelf-widget-input", "verdict": "pass" },
+    { "surface": "shelf-widget-result", "verdict": "pass" },
+    { "surface": "settings-pane", "verdict": "pass" },
+    { "surface": "live-activity", "verdict": "pass" },
+    { "surface": "paired-compact", "verdict": "pass" }
+  ],
+  "problems": []
+}

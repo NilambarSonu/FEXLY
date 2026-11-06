@@ -2,8 +2,8 @@
 //  CurrencyView.swift
 //  Skylet
 //
-//  Premium Currency Intelligence & Instant Conversion View
-//  Quiet Precision. Instant Intelligence.
+//  Figma-faithful currency conversion interface supporting input state (Screen A)
+//  and conversion result state (Screen B) with historical FX charts.
 //
 
 import SwiftUI
@@ -16,19 +16,20 @@ public struct CurrencyView: View {
     let isCompact: Bool
 
     @State private var inputText: String = ""
-    @State private var selectedCurrency: CurrencyCode = .usd
-    @State private var ambiguousCandidates: [CurrencyCode] = []
-    @State private var detectedAmount: Decimal?
+    @State private var sourceCurrency: CurrencyCode = .usd
+    @State private var targetCurrency: CurrencyCode = .inr
     @State private var conversionResult: CurrencyConversionResult?
+    @State private var isShowingResult: Bool = false
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
+    @State private var isEditingResultAmount: Bool = false
+    @State private var isRotating: Double = 0
     @State private var copiedConfirmation: Bool = false
-    @State private var isReversed: Bool = false
-    @State private var showCurrencyPicker: Bool = false
-    @State private var swapRotation: Double = 0
-    @State private var refreshRotation: Double = 0
+    @FocusState private var isSearchFocused: Bool
 
-    @FocusState private var isInputFocused: Bool
+    // Quick Currency Shortcuts
+    private let topShortcuts: [CurrencyCode] = [.usd, .inr, .eur, .gbp, .aed]
+    private let bottomShortcuts: [CurrencyCode] = [.cad, .aud, .sgd, .jpy, .chf]
 
     public init(droplet: SkyletDroplet, isCompact: Bool) {
         self.droplet = droplet
@@ -36,596 +37,384 @@ public struct CurrencyView: View {
     }
 
     public var body: some View {
-        ZStack {
-            if isCompact {
-                compactBody
+        VStack(spacing: 8) {
+            if isShowingResult && conversionResult != nil {
+                resultStateView
             } else {
-                fullBody
-            }
-
-            if showCurrencyPicker {
-                CurrencySelectorView(
-                    selectedCurrency: $selectedCurrency,
-                    onSelect: { code in
-                        selectedCurrency = code
-                        ambiguousCandidates = []
-                        withAnimation(SkyletTheme.quickAnimation) {
-                            showCurrencyPicker = false
-                        }
-                        if let amt = detectedAmount {
-                            executeConversion(amount: amt, source: code)
-                        }
-                    },
-                    onDismiss: {
-                        withAnimation(SkyletTheme.quickAnimation) {
-                            showCurrencyPicker = false
-                        }
-                    }
-                )
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .scale(scale: 0.96)),
-                    removal: .opacity.combined(with: .scale(scale: 0.96))
-                ))
-                .zIndex(10)
+                inputStateView
             }
         }
-        .animation(SkyletTheme.standardAnimation, value: showCurrencyPicker)
-    }
-
-    // MARK: - Full (Solo) Body
-
-    private var fullBody: some View {
-        VStack(alignment: .leading, spacing: DroppySpacing.xs) {
-            // 1. Amount Input & Clipboard Bar
-            inputRow
-
-            // 2. Ambiguous Candidates Bar (when applicable)
-            if !ambiguousCandidates.isEmpty {
-                ambiguousCandidateRow
-            }
-
-            // 3. Main Result & Conversion Area
-            if isLoading && conversionResult == nil {
-                loadingRow
-            } else if let result = conversionResult {
-                resultHeroSection(result)
-            } else if let error = errorMessage {
-                errorRow(error)
-            } else {
-                emptyStateRow
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onAppear {
+            sourceCurrency = droplet.defaultInputCurrency
+            targetCurrency = droplet.localTargetCurrency
+            if let existing = droplet.latestConversion {
+                self.conversionResult = existing
+                self.isShowingResult = true
             }
         }
     }
 
-    // MARK: - Input Row
+    // MARK: - Screen A: Input State View
 
-    private var inputRow: some View {
-        HStack(spacing: DroppySpacing.xs) {
-            HStack(spacing: DroppySpacing.xs) {
-                // Currency Symbol or Flag of selected source
+    private var inputStateView: some View {
+        VStack(spacing: 10) {
+            // Header: Settings Icon & API Active Status
+            HStack {
                 Button {
-                    showCurrencyPicker = true
-                } label: {
-                    HStack(spacing: 2) {
-                        Text(currentSourceInfo.flag)
-                            .font(.system(size: 11))
-                        Text(currentSourceCurrency.rawValue)
-                            .font(SkyletTheme.compactButtonFont)
-                            .foregroundStyle(SkyletTheme.primaryText)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 7, weight: .bold))
-                            .foregroundStyle(SkyletTheme.tertiaryText)
-                    }
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 3)
-                    .background(SkyletTheme.controlBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .help("Change source currency")
-
-                // Text Field
-                TextField("Amount (e.g. $25, €49.99, 100 USD)", text: $inputText)
-                    .textFieldStyle(.plain)
-                    .font(SkyletTheme.inputFont)
-                    .foregroundStyle(SkyletTheme.primaryText)
-                    .focused($isInputFocused)
-                    .onSubmit {
-                        processInput(inputText)
-                    }
-
-                // Clear button
-                if !inputText.isEmpty {
-                    Button {
-                        withAnimation(SkyletTheme.quickAnimation) {
-                            inputText = ""
-                            conversionResult = nil
-                            errorMessage = nil
-                            ambiguousCandidates = []
-                        }
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 11))
-                            .foregroundStyle(SkyletTheme.tertiaryText)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Clear input")
-                }
-            }
-            .padding(.horizontal, DroppySpacing.sm)
-            .padding(.vertical, 5)
-            .background(SkyletTheme.controlBackground)
-            .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.sm, style: .continuous))
-
-            // Paste button (Quiet Liquid Glass pill)
-            Button {
-                importFromClipboard()
-            } label: {
-                HStack(spacing: 3) {
-                    Image(systemName: "doc.on.clipboard")
-                        .font(.system(size: 10))
-                    Text("Paste")
-                        .font(SkyletTheme.buttonFont)
-                }
-                .padding(.horizontal, DroppySpacing.sm)
-                .padding(.vertical, 5)
-                .background(SkyletTheme.controlBackground)
-                .foregroundStyle(SkyletTheme.primaryText)
-                .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.sm, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .help("Convert amount from clipboard (⌘V)")
-        }
-    }
-
-    // MARK: - Ambiguous Candidate Row
-
-    private var ambiguousCandidateRow: some View {
-        HStack(spacing: DroppySpacing.xs) {
-            Text("Match:")
-                .font(SkyletTheme.captionFont)
-                .foregroundStyle(SkyletTheme.tertiaryText)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DroppySpacing.xs) {
-                    ForEach(ambiguousCandidates.prefix(6), id: \.self) { code in
-                        let info = CurrencyRegistry.info(for: code)
-                        Button {
-                            withAnimation(SkyletTheme.quickAnimation) {
-                                selectedCurrency = code
-                                ambiguousCandidates = []
-                                if let amt = detectedAmount {
-                                    executeConversion(amount: amt, source: code)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 2) {
-                                Text(info.flag)
-                                    .font(.system(size: 10))
-                                Text(code.rawValue)
-                                    .font(SkyletTheme.compactButtonFont)
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(selectedCurrency == code ? SkyletTheme.skyBlue.opacity(0.25) : SkyletTheme.controlBackground)
-                            .foregroundStyle(selectedCurrency == code ? SkyletTheme.skyBlue : SkyletTheme.secondaryText)
-                            .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-        .padding(.vertical, 1)
-    }
-
-    // MARK: - Result Hero Section
-
-    private func resultHeroSection(_ result: CurrencyConversionResult) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            // Hero converted amount & primary actions row
-            HStack(alignment: .firstTextBaseline, spacing: DroppySpacing.sm) {
-                // Hero Target Amount
-                Text(formatConverted(result))
-                    .font(SkyletTheme.heroAmountFont)
-                    .monospacedDigit()
-                    .foregroundStyle(SkyletTheme.skyBlue)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-
-                // Source amount tag
-                HStack(spacing: 3) {
-                    Text("from")
-                        .font(SkyletTheme.captionFont)
-                        .foregroundStyle(SkyletTheme.tertiaryText)
-                    Text(formatSource(result))
-                        .font(SkyletTheme.subheadFont)
-                        .foregroundStyle(SkyletTheme.secondaryText)
-                }
-
-                Spacer(minLength: DroppySpacing.sm)
-
-                // Swap Direction Button
-                Button {
-                    withAnimation(SkyletTheme.standardAnimation) {
-                        swapRotation += 180
-                        swapCurrencies()
-                    }
-                } label: {
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(isReversed ? SkyletTheme.skyBlue : SkyletTheme.secondaryText)
-                        .rotationEffect(.degrees(swapRotation))
-                        .padding(5)
-                        .background(isReversed ? SkyletTheme.skyBlue.opacity(0.18) : SkyletTheme.controlBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .help("Swap conversion direction (\(result.sourceCurrency.rawValue) ⇄ \(result.targetCurrency.rawValue))")
-
-                // Copy Action Button
-                Button {
-                    copyResult(result)
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: copiedConfirmation ? "checkmark" : "doc.on.doc")
-                            .font(.system(size: 9, weight: .semibold))
-                        Text(copiedConfirmation ? "Copied" : "Copy")
-                            .font(SkyletTheme.compactButtonFont)
-                    }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(copiedConfirmation ? SkyletTheme.statusLive.opacity(0.2) : SkyletTheme.controlBackground)
-                    .foregroundStyle(copiedConfirmation ? SkyletTheme.statusLive : SkyletTheme.primaryText)
-                    .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .help("Copy converted amount to clipboard")
-            }
-
-            // Rate Provenance & Freshness Subtitle
-            HStack(spacing: 5) {
-                // Exchange Rate formula
-                Text(CurrencyFormatter.formatRateCompact(from: result.sourceCurrency, to: result.targetCurrency, rate: result.rate))
-                    .font(SkyletTheme.captionFont)
-                    .monospacedDigit()
-                    .foregroundStyle(SkyletTheme.secondaryText)
-
-                Text("•")
-                    .font(SkyletTheme.captionFont)
-                    .foregroundStyle(SkyletTheme.tertiaryText)
-
-                // Restrained Freshness Dot
-                Circle()
-                    .fill(freshnessColor(for: result.freshness))
-                    .frame(width: 5, height: 5)
-
-                // Provenance Text
-                Text(result.formattedSubtext)
-                    .font(SkyletTheme.captionFont)
-                    .foregroundStyle(freshnessTextColor(for: result.freshness))
-                    .lineLimit(1)
-
-                // Live Refresh Action Button
-                Button {
-                    refreshLiveRate()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(isLoading ? SkyletTheme.tertiaryText : SkyletTheme.skyBlue)
-                        .rotationEffect(.degrees(refreshRotation))
-                }
-                .buttonStyle(.plain)
-                .disabled(isLoading)
-                .help("Refresh exchange rate from provider")
-
-                // Settings indicator if using daily reference
-                if result.freshness == .dailyReference && droplet.keychain.get(key: "twelvedata_api_key") == nil {
-                    Button {
+                    withAnimation(SkyletTheme.quickAnimation) {
                         droplet.selectedMode = .settings
-                    } label: {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 9))
-                            .foregroundStyle(SkyletTheme.tertiaryText)
                     }
-                    .buttonStyle(.plain)
-                    .help("Configure Twelve Data API Key for real-time rates")
+                } label: {
+                    SkyletIcon.SettingsShape()
+                        .stroke(Color.white.opacity(0.85), lineWidth: 1.5)
+                        .frame(width: 15, height: 15)
+                }
+                .buttonStyle(.plain)
+                .help("Open Skylet Settings")
+
+                Spacer()
+
+                providerStatusBadge
+            }
+            .padding(.horizontal, 4)
+
+            // Large Pale Cyan Rounded Search / Input Pill
+            HStack(spacing: 8) {
+                TextField("67.87 in USD", text: $inputText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SkyletTheme.darkInputText)
+                    .focused($isSearchFocused)
+                    .onSubmit {
+                        submitInput()
+                    }
+
+                Button {
+                    submitInput()
+                } label: {
+                    SkyletIcon.SearchShape()
+                        .stroke(SkyletTheme.darkInputText, lineWidth: 2)
+                        .frame(width: 17, height: 17)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(SkyletTheme.inputAccent)
+            .clipShape(Capsule())
+
+            // Quick Currency Shortcut Chips
+            VStack(spacing: 6) {
+                HStack(spacing: 6) {
+                    ForEach(topShortcuts, id: \.self) { code in
+                        quickCurrencyChip(code: code)
+                    }
+                }
+                HStack(spacing: 6) {
+                    ForEach(bottomShortcuts, id: \.self) { code in
+                        quickCurrencyChip(code: code)
+                    }
                 }
             }
-            .padding(.top, 2)
+
+            if let error = errorMessage {
+                Text(error)
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(SkyletTheme.statusError)
+                    .multilineTextAlignment(.center)
+            }
+
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 6)
+        .padding(.top, 4)
+    }
+
+    // MARK: - Screen B: Result State View
+
+    private var resultStateView: some View {
+        VStack(spacing: 8) {
+            // Upper Row: Amount Pill (Left) & Rate Formula / Status (Right)
+            HStack(alignment: .center, spacing: 10) {
+                // Source Amount Pill in Pale Cyan
+                HStack(spacing: 6) {
+                    let sourceFormatted = CurrencyFormatter.format(
+                        amount: conversionResult?.sourceAmount ?? 0,
+                        currency: conversionResult?.sourceCurrency ?? sourceCurrency
+                    )
+
+                    Button {
+                        withAnimation(SkyletTheme.quickAnimation) {
+                            self.inputText = "\(conversionResult?.sourceAmount ?? 0) \(conversionResult?.sourceCurrency.rawValue ?? "")"
+                            self.isShowingResult = false
+                        }
+                    } label: {
+                        Text(sourceFormatted)
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(SkyletTheme.darkInputText)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Click to edit amount")
+
+                    Spacer(minLength: 4)
+
+                    // Rotate / Swap Button
+                    Button {
+                        swapCurrencies()
+                    } label: {
+                        SkyletIcon.RotateShape()
+                            .stroke(SkyletTheme.darkInputText, lineWidth: 1.8)
+                            .frame(width: 14, height: 14)
+                            .rotationEffect(.degrees(isRotating))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Swap currency direction")
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(SkyletTheme.inputAccent)
+                .clipShape(Capsule())
+                .frame(maxWidth: isCompact ? .infinity : 155)
+
+                Spacer(minLength: 0)
+
+                // Rate Formula & Status Badge
+                VStack(alignment: .trailing, spacing: 2) {
+                    providerStatusBadge
+
+                    if let res = conversionResult {
+                        let sourceCode = res.sourceCurrency.rawValue
+                        let targetSymbol = CurrencyMetadata.symbol(for: res.targetCurrency)
+                        let formattedRate = CurrencyFormatter.formatRateValue(res.rate)
+                        Text("1 \(sourceCode) = \(targetSymbol)\(formattedRate)")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.90))
+                    }
+                }
+            }
+            .padding(.horizontal, 2)
+
+            // Lower Section: Historical Graph Card (Left) & Converted Amount (Right)
+            if isCompact {
+                // Compact / Paired Mode: Stacked layout
+                convertedAmountCard
+                    .frame(height: 52)
+                if droplet.isGraphEnabled {
+                    HistoricalGraphView(
+                        service: droplet.historyService,
+                        baseCurrency: conversionResult?.sourceCurrency ?? sourceCurrency,
+                        quoteCurrency: conversionResult?.targetCurrency ?? targetCurrency,
+                        selectedRange: $droplet.selectedGraphRange,
+                        isCompact: true
+                    )
+                    .frame(height: 55)
+                }
+            } else {
+                // Solo Mode: Side-by-Side layout exactly matching Figma Screenshot
+                HStack(spacing: 8) {
+                    if droplet.isGraphEnabled {
+                        HistoricalGraphView(
+                            service: droplet.historyService,
+                            baseCurrency: conversionResult?.sourceCurrency ?? sourceCurrency,
+                            quoteCurrency: conversionResult?.targetCurrency ?? targetCurrency,
+                            selectedRange: $droplet.selectedGraphRange,
+                            isCompact: false
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+
+                    convertedAmountCard
+                        .frame(width: droplet.isGraphEnabled ? 160 : .infinity, maxHeight: .infinity)
+                }
+            }
+        }
+        .padding(.horizontal, 4)
         .padding(.top, 2)
     }
 
-    // MARK: - Loading State
+    // MARK: - Large Converted Amount Card
 
-    private var loadingRow: some View {
-        HStack(spacing: DroppySpacing.sm) {
-            ProgressView()
-                .controlSize(.small)
-            Text("Fetching exchange rate…")
-                .font(SkyletTheme.captionFont)
-                .foregroundStyle(SkyletTheme.secondaryText)
-            Spacer()
-        }
-        .padding(.vertical, DroppySpacing.sm)
-    }
+    private var convertedAmountCard: some View {
+        let targetFormatted = CurrencyFormatter.format(
+            amount: conversionResult?.targetAmount ?? 0,
+            currency: conversionResult?.targetCurrency ?? targetCurrency
+        )
 
-    // MARK: - Error State
-
-    private func errorRow(_ error: String) -> some View {
-        HStack(spacing: DroppySpacing.xs) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(SkyletTheme.statusDelayed)
-
-            Text(error)
-                .font(SkyletTheme.captionFont)
-                .foregroundStyle(SkyletTheme.secondaryText)
-                .lineLimit(2)
-
-            Spacer(minLength: DroppySpacing.sm)
-
-            Button("Retry") {
-                if let amt = detectedAmount {
-                    executeConversion(amount: amt, source: selectedCurrency, forceRefresh: true)
+        return Button {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(targetFormatted, forType: .string)
+            withAnimation(SkyletTheme.quickAnimation) {
+                copiedConfirmation = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation(SkyletTheme.quickAnimation) {
+                    copiedConfirmation = false
                 }
             }
-            .font(SkyletTheme.compactButtonFont)
-            .foregroundStyle(SkyletTheme.skyBlue)
-            .buttonStyle(.plain)
+        } label: {
+            ZStack {
+                // Cyan / Teal Gradient Background matching Figma
+                LinearGradient(
+                    colors: [
+                        Color(red: 0x5E/255.0, green: 0xEA/255.0, blue: 0xD4/255.0),
+                        Color(red: 0x2D/255.0, green: 0xD4/255.0, blue: 0xBF/255.0)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
 
-            Button("Settings") {
-                droplet.selectedMode = .settings
-            }
-            .font(SkyletTheme.compactButtonFont)
-            .foregroundStyle(SkyletTheme.tertiaryText)
-            .buttonStyle(.plain)
-        }
-        .padding(.vertical, 3)
-    }
-
-    // MARK: - Empty State Suggestions
-
-    private var emptyStateRow: some View {
-        HStack(spacing: DroppySpacing.xs) {
-            Text("Suggestions:")
-                .font(SkyletTheme.captionFont)
-                .foregroundStyle(SkyletTheme.tertiaryText)
-
-            ForEach(["$25", "€49.99", "100 USD", "£12.50"], id: \.self) { sample in
-                Button(sample) {
-                    withAnimation(SkyletTheme.quickAnimation) {
-                        inputText = sample
-                        processInput(sample)
-                    }
-                }
-                .font(SkyletTheme.captionFont)
-                .foregroundStyle(SkyletTheme.skyBlue)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(SkyletTheme.controlBackground)
-                .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.top, DroppySpacing.xs)
-    }
-
-    // MARK: - Compact (Paired) Body
-
-    private var compactBody: some View {
-        VStack(alignment: .leading, spacing: DroppySpacing.xs) {
-            if let result = conversionResult {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(formatConverted(result))
-                        .font(SkyletTheme.mediumAmountFont)
-                        .monospacedDigit()
-                        .foregroundStyle(SkyletTheme.skyBlue)
-                        .lineLimit(1)
-
-                    Spacer(minLength: DroppySpacing.xs)
-
-                    Button {
-                        withAnimation(SkyletTheme.standardAnimation) {
-                            swapCurrencies()
+                VStack(spacing: 2) {
+                    if copiedConfirmation {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("Copied")
+                                .font(.system(size: 12, weight: .semibold))
                         }
-                    } label: {
-                        Image(systemName: "arrow.left.arrow.right")
-                            .font(.system(size: 8))
-                            .foregroundStyle(SkyletTheme.tertiaryText)
+                        .foregroundStyle(Color(red: 0x06/255.0, green: 0x4E/255.0, blue: 0x3B/255.0))
+                    } else {
+                        Text(targetFormatted)
+                            .font(.system(size: isCompact ? 18 : 22, weight: .bold, design: .serif))
+                            .foregroundStyle(Color(red: 0x04/255.0, green: 0x2F/255.0, blue: 0x2E/255.0))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .padding(.horizontal, 6)
                     }
-                    .buttonStyle(.plain)
                 }
-
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(freshnessColor(for: result.freshness))
-                        .frame(width: 4, height: 4)
-                    Text(result.formattedSubtext)
-                        .font(SkyletTheme.captionFont)
-                        .foregroundStyle(SkyletTheme.tertiaryText)
-                        .lineLimit(1)
-                }
-            } else {
-                Button {
-                    importFromClipboard()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "doc.on.clipboard")
-                            .font(.system(size: 10))
-                        Text("Paste amount")
-                            .font(SkyletTheme.buttonFont)
-                    }
-                    .foregroundStyle(SkyletTheme.skyBlue)
-                }
-                .buttonStyle(.plain)
             }
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 2)
+        }
+        .buttonStyle(.plain)
+        .help("Click to copy converted amount")
+    }
+
+    // MARK: - Quick Currency Chip
+
+    private func quickCurrencyChip(code: CurrencyCode) -> some View {
+        let isSelected = (code == sourceCurrency || code == targetCurrency)
+
+        return Button {
+            // If input is empty, set source currency
+            if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                sourceCurrency = code
+                inputText = "100 \(code.rawValue)"
+            } else {
+                // If input has numbers, append or switch currency
+                let parsed = CurrencyParser.parse(inputText)
+                switch parsed {
+                case .amountOnly(let amt, _):
+                    sourceCurrency = code
+                    inputText = "\(amt) \(code.rawValue)"
+                case .unambiguous(let amt, _, _):
+                    sourceCurrency = code
+                    inputText = "\(amt) \(code.rawValue)"
+                default:
+                    inputText = "\(inputText) in \(code.rawValue)"
+                }
+            }
+            submitInput()
+        } label: {
+            Text(code.rawValue)
+                .font(.system(size: 9.5, weight: isSelected ? .bold : .medium))
+                .foregroundStyle(isSelected ? Color.black : Color.black.opacity(0.85))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+                .background(isSelected ? Color.white : SkyletTheme.lightControls)
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Provider Status Badge
+
+    private var providerStatusBadge: some View {
+        let hasKey = (droplet.keychain.get(key: "twelvedata_api_key") != nil)
+        let isLive = conversionResult?.rateEntry.freshness == .live
+
+        return HStack(spacing: 4) {
+            Circle()
+                .fill(isLive ? SkyletTheme.activeStatus : (hasKey ? SkyletTheme.statusDelayed : Color.white.opacity(0.50)))
+                .frame(width: 5, height: 5)
+            Text(isLive ? "• API Active" : (hasKey ? "• Delayed" : "• Daily Reference"))
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(isLive ? SkyletTheme.activeStatus : SkyletTheme.secondaryText)
         }
     }
 
-    // MARK: - Freshness Helpers
+    // MARK: - Actions
 
-    private func freshnessColor(for freshness: RateFreshness) -> Color {
-        switch freshness {
-        case .live: return SkyletTheme.statusLive
-        case .delayed: return SkyletTheme.statusDelayed
-        case .cached: return SkyletTheme.statusCached
-        case .dailyReference: return SkyletTheme.statusReference
-        case .stale: return SkyletTheme.statusDelayed
-        case .unavailable: return SkyletTheme.statusError
-        }
-    }
+    private func submitInput() {
+        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
 
-    private func freshnessTextColor(for freshness: RateFreshness) -> Color {
-        switch freshness {
-        case .stale, .delayed: return SkyletTheme.statusDelayed
-        case .unavailable: return SkyletTheme.statusError
-        default: return SkyletTheme.tertiaryText
-        }
-    }
+        let parsed = CurrencyParser.parse(trimmed)
+        let amount: Decimal
+        var fromCode = sourceCurrency
+        var toCode = targetCurrency
 
-    private var currentSourceCurrency: CurrencyCode {
-        isReversed ? .inr : selectedCurrency
-    }
-
-    private var currentSourceInfo: CurrencyInfo {
-        CurrencyRegistry.info(for: currentSourceCurrency)
-    }
-
-    // MARK: - Actions & Calculations
-
-    private func processInput(_ text: String) {
-        errorMessage = nil
-        let outcome = CurrencyParser.parse(text)
-        switch outcome {
+        switch parsed {
         case .empty:
-            conversionResult = nil
-            detectedAmount = nil
-            ambiguousCandidates = []
-
-        case .invalidAmount(let raw):
-            errorMessage = "No numerical amount found in: \"\(raw)\""
-            conversionResult = nil
-
-        case .multipleAmountsFound(let amounts):
-            errorMessage = "Multiple amounts found (\(amounts.map { "\($0)" }.joined(separator: ", "))). Please enter one."
-            conversionResult = nil
-
-        case .unambiguous(let amount, let currency, _):
-            self.detectedAmount = amount
-            self.selectedCurrency = currency
-            self.ambiguousCandidates = []
-            executeConversion(amount: amount, source: currency)
-
-        case .ambiguous(let amount, _, let candidates, _):
-            self.detectedAmount = amount
-            self.ambiguousCandidates = candidates
-            self.selectedCurrency = candidates.first ?? .usd
-            executeConversion(amount: amount, source: selectedCurrency)
-
-        case .amountOnly(let amount, _):
-            self.detectedAmount = amount
-            self.ambiguousCandidates = CurrencyRegistry.popularCurrencies
-            executeConversion(amount: amount, source: selectedCurrency)
-
-        case .unknownCurrency(let amount, let token, _):
-            self.detectedAmount = amount
-            if let code = CurrencyCode(token) {
-                self.selectedCurrency = code
-                executeConversion(amount: amount, source: code)
-            } else {
-                self.ambiguousCandidates = CurrencyRegistry.popularCurrencies
-                errorMessage = "Unrecognized currency code: \(token)"
-            }
-
-        @unknown default:
-            break
+            return
+        case .invalidAmount:
+            errorMessage = "Please enter a valid amount and currency."
+            return
+        case .amountOnly(let amt, _):
+            amount = amt
+            fromCode = droplet.defaultInputCurrency
+            toCode = droplet.localTargetCurrency
+        case .unambiguous(let amt, let curr, _):
+            amount = amt
+            fromCode = curr
+            toCode = (curr == droplet.localTargetCurrency) ? droplet.defaultInputCurrency : droplet.localTargetCurrency
+        case .ambiguous(let amt, _, let candidates, _):
+            amount = amt
+            fromCode = candidates.first ?? droplet.defaultInputCurrency
+            toCode = (fromCode == droplet.localTargetCurrency) ? droplet.defaultInputCurrency : droplet.localTargetCurrency
         }
+
+        sourceCurrency = fromCode
+        targetCurrency = toCode
+        executeConversion(amount: amount, source: fromCode, target: toCode)
     }
 
-    private func executeConversion(amount: Decimal, source: CurrencyCode, forceRefresh: Bool = false) {
+    private func executeConversion(amount: Decimal, source: CurrencyCode, target: CurrencyCode) {
         isLoading = true
         errorMessage = nil
-
-        let fromCode = isReversed ? .inr : source
-        let toCode = isReversed ? source : CurrencyCode.inr
 
         Task {
             do {
                 let result = try await droplet.rateService.convert(
                     amount: amount,
-                    from: fromCode,
-                    to: toCode,
-                    forceRefresh: forceRefresh
+                    from: source,
+                    to: target
                 )
                 await MainActor.run {
-                    withAnimation(SkyletTheme.standardAnimation) {
-                        self.conversionResult = result
-                        self.isLoading = false
-                        self.droplet.updateLatestConversion(result)
-                    }
+                    self.conversionResult = result
+                    self.droplet.updateLatestConversion(result)
+                    self.isShowingResult = true
+                    self.isLoading = false
                 }
             } catch {
                 await MainActor.run {
-                    withAnimation(SkyletTheme.quickAnimation) {
-                        self.errorMessage = error.localizedDescription
-                        self.isLoading = false
-                    }
+                    self.errorMessage = error.localizedDescription
+                    self.isLoading = false
                 }
             }
         }
     }
 
-    private func refreshLiveRate() {
-        guard let amt = detectedAmount else { return }
-        withAnimation(.linear(duration: 0.6)) {
-            refreshRotation += 360
-        }
-        executeConversion(amount: amt, source: selectedCurrency, forceRefresh: true)
-    }
-
-    private func importFromClipboard() {
-        guard let clipboardText = NSPasteboard.general.string(forType: .string), !clipboardText.isEmpty else {
-            errorMessage = "Clipboard is empty."
-            return
-        }
-        inputText = clipboardText.trimmingCharacters(in: .whitespacesAndNewlines)
-        processInput(inputText)
-    }
-
     private func swapCurrencies() {
-        isReversed.toggle()
-        if let amt = detectedAmount {
-            executeConversion(amount: amt, source: selectedCurrency)
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            isRotating += 180
         }
-    }
+        let temp = sourceCurrency
+        sourceCurrency = targetCurrency
+        targetCurrency = temp
 
-    private func copyResult(_ result: CurrencyConversionResult) {
-        let copyText = CurrencyFormatter.copyableSummary(
-            fromAmount: result.sourceAmount,
-            fromCurrency: result.sourceCurrency,
-            toAmount: result.targetAmount,
-            toCurrency: result.targetCurrency
-        )
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(copyText, forType: .string)
-
-        withAnimation(SkyletTheme.quickAnimation) {
-            copiedConfirmation = true
+        if let res = conversionResult {
+            executeConversion(amount: res.sourceAmount, source: sourceCurrency, target: targetCurrency)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation(SkyletTheme.quickAnimation) {
-                copiedConfirmation = false
-            }
-        }
-    }
-
-    private func formatSource(_ result: CurrencyConversionResult) -> String {
-        CurrencyFormatter.format(amount: result.sourceAmount, currency: result.sourceCurrency)
-    }
-
-    private func formatConverted(_ result: CurrencyConversionResult) -> String {
-        CurrencyFormatter.format(amount: result.targetAmount, currency: result.targetCurrency)
     }
 }

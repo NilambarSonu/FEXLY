@@ -25,6 +25,7 @@ public struct CurrencyCode: Hashable, Codable, Sendable, CustomStringConvertible
     }
 
     public var description: String { rawValue }
+    public var code: String { rawValue }
 
     // Common standard currencies
     public static let inr: CurrencyCode = "INR"

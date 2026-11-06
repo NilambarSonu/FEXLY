@@ -109,7 +109,7 @@ jobs:
           files: |
             .build/Skylet.droplet.zip
             .build/Skylet.droplet.zip.sha256
-          name: SKYLET ${{ github.ref_name }} — Currency Intelligence & Focus Timer
+          name: SKYLET ${{ github.ref_name }} — Real-Time FX & Historical Graph Intelligence
           draft: false
           prerelease: false
           generate_release_notes: true

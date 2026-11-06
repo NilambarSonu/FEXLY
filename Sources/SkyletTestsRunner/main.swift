@@ -27,7 +27,7 @@ func runAllTests() async {
         }
     }
 
-    print("\n[1/3] Currency Parser Tests")
+    print("\n[1/4] Currency Parser Tests")
 
     // Empty and whitespace
     assert(CurrencyParser.parse("") == .empty, "Empty input returns .empty")
@@ -121,7 +121,7 @@ func runAllTests() async {
     // Unknown currency
     assert(CurrencyParser.parse("100 XYZ") == .unambiguous(amount: 100, currency: "XYZ", rawAmountString: "100"), "Valid ISO code 100 XYZ recognized as ISO currency")
 
-    print("\n[2/3] Currency Conversion & Formatting Tests")
+    print("\n[2/4] Currency Conversion & Formatting Tests")
 
     // Mock Provider class
     final class LocalMockProvider: CurrencyRateProviding, @unchecked Sendable {
@@ -181,7 +181,7 @@ func runAllTests() async {
     assert(CurrencyFormatter.formatRateCompact(from: .usd, to: .inr, rate: Decimal(string: "95.24")!) == "1 USD = ₹95.24", "CurrencyFormatter.formatRateCompact formats with ₹ symbol for INR")
     assert(CurrencyFormatter.copyableSummary(fromAmount: 25, fromCurrency: .usd, toAmount: Decimal(string: "2380.50")!) == "$25.00 = ₹2,380.50", "CurrencyFormatter.copyableSummary formats copyable text")
 
-    print("\n[3/3] Real-Time FX, Twelve Data & Keychain Tests")
+    print("\n[3/4] Real-Time FX, Twelve Data & Keychain Tests")
 
     // Mock URLProtocol for isolated Twelve Data networking tests
     final class MockURLProtocol: URLProtocol, @unchecked Sendable {
@@ -790,6 +790,231 @@ func runAllTests() async {
         assert(refResultB.entry.freshness == .stale && refResultB.isStale, "Case 9B: Daily reference (age 14h > 12h) returns .stale and isStale == true")
     } else {
         assert(false, "Case 9B: Entry not found")
+    }
+
+    print("\n[4/4] Historical FX Series, Twelve Data & Cache Tests")
+
+    // 1. TwelveDataHistoryProvider: Missing API Key
+    let historyNoKeyProvider = TwelveDataHistoryProvider(
+        session: mockSession,
+        apiKeyProvider: { nil }
+    )
+    do {
+        _ = try await historyNoKeyProvider.fetchHistory(from: .usd, to: .inr, range: .oneMonth)
+        assert(false, "Twelve Data history with missing key should throw missingAPIKey")
+    } catch CurrencyHistoryError.missingAPIKey {
+        assert(true, "Twelve Data history with missing key throws missingAPIKey")
+    } catch {
+        assert(false, "Twelve Data history unexpected error: \(error)")
+    }
+
+    // 2. TwelveDataHistoryProvider: Identity conversion (USD to USD)
+    do {
+        let identitySeries = try await historyNoKeyProvider.fetchHistory(from: .usd, to: .usd, range: .oneDay)
+        assert(identitySeries.points.count == 1 && identitySeries.points.first?.rate == 1, "Identity history returns 1.0 immediately")
+    } catch {
+        assert(false, "Identity history failed: \(error)")
+    }
+
+    // 3. TwelveDataHistoryProvider: Valid time series JSON parsing and chronological sorting
+    let validTimeSeriesJSON = """
+    {
+      "meta": { "symbol": "USD/INR", "interval": "15min" },
+      "values": [
+        { "datetime": "2026-11-06 10:00:00", "close": "95.50" },
+        { "datetime": "2026-11-06 09:45:00", "close": "95.40" },
+        { "datetime": "2026-11-06 09:30:00", "close": "95.30" }
+      ],
+      "status": "ok"
+    }
+    """.data(using: .utf8)!
+
+    MockURLProtocol.mockResponseData = validTimeSeriesJSON
+    MockURLProtocol.mockStatusCode = 200
+    MockURLProtocol.mockError = nil
+
+    let validHistoryProvider = TwelveDataHistoryProvider(
+        session: mockSession,
+        apiKeyProvider: { "valid_test_key" }
+    )
+
+    do {
+        let series = try await validHistoryProvider.fetchHistory(from: .usd, to: .inr, range: .oneDay)
+        assert(series.points.count == 3, "Twelve Data time series parses all valid points")
+        assert(series.points[0].rate == Decimal(string: "95.30")!, "First point is earliest chronological point (95.30)")
+        assert(series.points[2].rate == Decimal(string: "95.50")!, "Last point is latest chronological point (95.50)")
+        assert(series.minRate == Decimal(string: "95.30")!, "minRate calculated correctly")
+        assert(series.maxRate == Decimal(string: "95.50")!, "maxRate calculated correctly")
+        assert(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: "Authorization") == "apikey valid_test_key", "Twelve Data sends Authorization header for time series")
+    } catch {
+        assert(false, "Valid time series test failed: \(error)")
+    }
+
+    // 4. TwelveDataHistoryProvider: HTTP 401 & 429
+    MockURLProtocol.mockStatusCode = 401
+    MockURLProtocol.mockResponseData = """
+    {"code": 401, "message": "Invalid API key", "status": "error"}
+    """.data(using: .utf8)!
+    do {
+        _ = try await validHistoryProvider.fetchHistory(from: .usd, to: .inr, range: .oneMonth)
+        assert(false, "401 should throw invalidAPIKey")
+    } catch CurrencyHistoryError.invalidAPIKey {
+        assert(true, "Twelve Data history HTTP 401 throws invalidAPIKey")
+    } catch {
+        assert(false, "Twelve Data history 401 threw unexpected error: \(error)")
+    }
+
+    MockURLProtocol.mockStatusCode = 429
+    MockURLProtocol.mockResponseData = """
+    {"code": 429, "message": "Rate limit exceeded", "status": "error"}
+    """.data(using: .utf8)!
+    do {
+        _ = try await validHistoryProvider.fetchHistory(from: .usd, to: .inr, range: .oneMonth)
+        assert(false, "429 should throw rateLimitExceeded")
+    } catch CurrencyHistoryError.rateLimitExceeded {
+        assert(true, "Twelve Data history HTTP 429 throws rateLimitExceeded")
+    } catch {
+        assert(false, "Twelve Data history 429 threw unexpected error: \(error)")
+    }
+
+    // 5. TwelveDataHistoryProvider: Provider error inside HTTP 200
+    MockURLProtocol.mockStatusCode = 200
+    MockURLProtocol.mockResponseData = """
+    {"code": 404, "message": "Symbol not found", "status": "error"}
+    """.data(using: .utf8)!
+    do {
+        _ = try await validHistoryProvider.fetchHistory(from: .usd, to: .inr, range: .oneMonth)
+        assert(false, "Provider error in 200 should throw unsupportedCurrencyPair")
+    } catch CurrencyHistoryError.unsupportedCurrencyPair {
+        assert(true, "Provider-level error in 200 response throws unsupportedCurrencyPair")
+    } catch {
+        assert(false, "Provider-level error threw: \(error)")
+    }
+
+    // 6. FrankfurterHistoryProvider: Intraday ranges rejected
+    let frankfurterProvider = FrankfurterHistoryProvider(session: mockSession)
+    do {
+        _ = try await frankfurterProvider.fetchHistory(from: .usd, to: .inr, range: .oneDay)
+        assert(false, "Frankfurter should reject 1D intraday")
+    } catch CurrencyHistoryError.intradayNotSupportedByReferenceProvider {
+        assert(true, "Frankfurter rejects 1D intraday request with typed error")
+    } catch {
+        assert(false, "Frankfurter 1D threw unexpected error: \(error)")
+    }
+
+    do {
+        _ = try await frankfurterProvider.fetchHistory(from: .usd, to: .inr, range: .fiveDays)
+        assert(false, "Frankfurter should reject 5D intraday")
+    } catch CurrencyHistoryError.intradayNotSupportedByReferenceProvider {
+        assert(true, "Frankfurter rejects 5D intraday request with typed error")
+    } catch {
+        assert(false, "Frankfurter 5D threw unexpected error: \(error)")
+    }
+
+    // 7. FrankfurterHistoryProvider: Valid 1M daily reference series parsing
+    let frankfurterValidJSON = """
+    {
+      "amount": 1.0,
+      "base": "USD",
+      "start_date": "2026-10-06",
+      "end_date": "2026-10-08",
+      "rates": {
+        "2026-10-08": { "INR": 94.60 },
+        "2026-10-06": { "INR": 94.20 },
+        "2026-10-07": { "INR": 94.40 }
+      }
+    }
+    """.data(using: .utf8)!
+    MockURLProtocol.mockStatusCode = 200
+    MockURLProtocol.mockResponseData = frankfurterValidJSON
+    do {
+        let frankSeries = try await frankfurterProvider.fetchHistory(from: .usd, to: .inr, range: .oneMonth)
+        assert(frankSeries.points.count == 3, "Frankfurter parses all 3 rate points")
+        assert(frankSeries.points[0].rate == Decimal(string: "94.20")!, "Frankfurter points sorted chronologically ascending")
+        assert(frankSeries.points[2].rate == Decimal(string: "94.60")!, "Frankfurter last point is most recent")
+        assert(frankSeries.freshness == .dailyReference, "Frankfurter marked as dailyReference freshness")
+    } catch {
+        assert(false, "Frankfurter valid history test failed: \(error)")
+    }
+
+    // 8. CurrencyHistoryCache: Set, Get, and TTL expiration
+    let testHistoryCache = CurrencyHistoryCache(persistToDisk: false)
+    let samplePoints = [
+        CurrencyHistoryPoint(timestamp: Date().addingTimeInterval(-300), rate: Decimal(string: "95.10")!),
+        CurrencyHistoryPoint(timestamp: Date(), rate: Decimal(string: "95.20")!)
+    ]
+    let sampleSeries = CurrencyHistorySeries(
+        baseCurrency: .usd,
+        quoteCurrency: .inr,
+        range: .oneDay,
+        points: samplePoints,
+        providerName: "Twelve Data",
+        interval: "15min",
+        fetchTimestamp: Date(),
+        freshness: .live
+    )
+    await testHistoryCache.set(sampleSeries)
+    if let cached = await testHistoryCache.get(from: .usd, to: .inr, range: .oneDay) {
+        assert(cached.series.isFromCache == true, "History cache retrieves with isFromCache == true")
+        assert(!cached.isStale, "Fresh history cache entry is not stale")
+    } else {
+        assert(false, "History cache failed to retrieve entry")
+    }
+
+    // Advanced clock past 1D TTL (5 mins)
+    let futureDate = Date().addingTimeInterval(400)
+    if let expired = await testHistoryCache.get(from: .usd, to: .inr, range: .oneDay, asOf: futureDate) {
+        assert(expired.isStale && expired.series.freshness == .stale, "Expired history cache entry returns isStale == true and freshness == .stale")
+    } else {
+        assert(false, "Expired history cache entry retrieval failed")
+    }
+
+    // 9. CurrencyHistoryService: Coordinated fallback
+    final class FailingHistoryProvider: CurrencyHistoryProviding, @unchecked Sendable {
+        let providerName = "Failing"
+        func fetchHistory(from: CurrencyCode, to: CurrencyCode, range: CurrencyHistoryRange) async throws -> CurrencyHistorySeries {
+            throw CurrencyHistoryError.rateLimitExceeded
+        }
+    }
+    final class SuccessHistoryProvider: CurrencyHistoryProviding, @unchecked Sendable {
+        let providerName = "MockFallback"
+        func fetchHistory(from: CurrencyCode, to: CurrencyCode, range: CurrencyHistoryRange) async throws -> CurrencyHistorySeries {
+            let pts = [CurrencyHistoryPoint(timestamp: Date(), rate: Decimal(string: "94.00")!)]
+            return CurrencyHistorySeries(
+                baseCurrency: from,
+                quoteCurrency: to,
+                range: range,
+                points: pts,
+                providerName: providerName,
+                interval: "1day",
+                fetchTimestamp: Date(),
+                freshness: .dailyReference
+            )
+        }
+    }
+
+    let coordinatedService = CurrencyHistoryService(
+        cache: CurrencyHistoryCache(persistToDisk: false),
+        twelveDataProvider: FailingHistoryProvider(),
+        fallbackProvider: SuccessHistoryProvider()
+    )
+
+    // Daily range falls back to fallback provider
+    do {
+        let fallbackResult = try await coordinatedService.getHistory(from: .usd, to: .inr, range: .oneMonth)
+        assert(fallbackResult.providerName == "MockFallback", "Service successfully falls back to reference provider when primary fails")
+    } catch {
+        assert(false, "Service fallback failed: \(error)")
+    }
+
+    // Intraday range fails without falling back to daily reference
+    do {
+        _ = try await coordinatedService.getHistory(from: .usd, to: .inr, range: .oneDay)
+        assert(false, "Intraday range should not fall back to daily reference")
+    } catch CurrencyHistoryError.rateLimitExceeded {
+        assert(true, "Intraday range preserves original primary error without improper fallback")
+    } catch {
+        assert(false, "Intraday threw unexpected: \(error)")
     }
 
     // 20. Optional Integration Test: If user configured TWELVEDATA_API_KEY via environment

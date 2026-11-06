@@ -2,11 +2,11 @@
 //  SettingsView.swift
 //  Skylet
 //
-//  Twelve Data Forex API & Keychain Configuration View
-//  Quiet Precision. Instant Intelligence.
+//  Figma-faithful Settings composition matching the user's design specification.
 //
 
 import SwiftUI
+import AppKit
 import DroppyKit
 import SkyletCore
 
@@ -16,279 +16,331 @@ public struct SettingsView: View {
     @State private var apiKeyInput: String = ""
     @State private var isRevealed: Bool = false
     @State private var hasStoredKey: Bool = false
-    @State private var isTesting: Bool = false
-    @State private var testResult: TestResult? = nil
-    @State private var statusMessage: String? = nil
-
-    private enum TestResult {
-        case success(rate: Decimal, timestamp: String, latencyMs: Int)
-        case failure(message: String)
-    }
+    @State private var isVerifiedActive: Bool = false
+    @State private var showInfoPopover: Bool = false
+    @State private var showDefaultPicker: Bool = false
+    @State private var showLocalPicker: Bool = false
+    @State private var statusFeedback: String? = nil
 
     public init(droplet: SkyletDroplet) {
         self.droplet = droplet
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: DroppySpacing.sm) {
-            // Header
-            HStack {
-                Label("Twelve Data Forex API", systemImage: "key.fill")
-                    .font(SkyletTheme.headerFont)
-                    .foregroundStyle(SkyletTheme.skyBlue)
-                Spacer()
-                if hasStoredKey {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(SkyletTheme.statusLive)
-                            .frame(width: 5, height: 5)
-                        Text("Configured in Keychain")
-                            .font(SkyletTheme.captionFont)
-                            .foregroundStyle(SkyletTheme.secondaryText)
-                    }
+        ZStack {
+            VStack(alignment: .leading, spacing: 10) {
+                // Header Row
+                headerRow
+
+                // Settings Form Card
+                VStack(alignment: .leading, spacing: 8) {
+                    // 1. API Key Row
+                    apiKeyRow
+
+                    // 2. Default Input Currency Row
+                    defaultInputCurrencyRow
+
+                    // 3. Choose Your Local Currency Row
+                    chooseLocalCurrencyRow
+
+                    // 4. Graph Toggle Row
+                    graphToggleRow
                 }
-            }
+                .padding(10)
+                .background(Color.white.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            Text("Enter your Twelve Data API key to enable live, real-time USD/INR and global forex quotes. Your key is stored securely in macOS Keychain and never leaves your Mac.")
-                .font(SkyletTheme.captionFont)
-                .foregroundStyle(SkyletTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            // API Key Input Row
-            HStack(spacing: DroppySpacing.xs) {
-                Group {
-                    if isRevealed {
-                        TextField("Twelve Data API Key", text: $apiKeyInput)
-                    } else {
-                        SecureField("Twelve Data API Key", text: $apiKeyInput)
-                    }
-                }
-                .textFieldStyle(.plain)
-                .font(.system(size: 11, design: .monospaced))
-                .padding(.horizontal, DroppySpacing.sm)
-                .padding(.vertical, 5)
-                .background(SkyletTheme.controlBackground)
-                .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.sm, style: .continuous))
-
-                // Toggle mask
-                Button {
-                    isRevealed.toggle()
-                } label: {
-                    Image(systemName: isRevealed ? "eye.slash" : "eye")
-                        .font(.system(size: 11))
-                        .foregroundStyle(SkyletTheme.tertiaryText)
-                        .padding(5)
-                        .background(SkyletTheme.controlBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .help(isRevealed ? "Hide key" : "Show key")
-
-                // Paste button
-                Button {
-                    if let text = NSPasteboard.general.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                       !text.isEmpty {
-                        apiKeyInput = text
-                    }
-                } label: {
-                    Image(systemName: "doc.on.clipboard")
-                        .font(.system(size: 11))
-                        .foregroundStyle(SkyletTheme.skyBlue)
-                        .padding(5)
-                        .background(SkyletTheme.controlBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .help("Paste key from clipboard")
-            }
-
-            // Action Buttons
-            HStack(spacing: DroppySpacing.xs) {
-                // Save Button
-                Button {
-                    saveKey()
-                } label: {
-                    Text("Save Key")
-                        .font(SkyletTheme.compactButtonFont)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(SkyletTheme.skyBlue)
-                        .foregroundStyle(Color.black)
-                        .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .disabled(apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                // Test Connection Button
-                Button {
-                    testConnection()
-                } label: {
-                    HStack(spacing: 4) {
-                        if isTesting {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Image(systemName: "network")
-                        }
-                        Text("Test Connection")
-                    }
-                    .font(SkyletTheme.compactButtonFont)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(SkyletTheme.controlBackground)
-                    .foregroundStyle(SkyletTheme.primaryText)
-                    .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .disabled(isTesting || (apiKeyInput.isEmpty && !hasStoredKey))
-
-                // Remove Button
-                if hasStoredKey {
+                // Done / Back Button
+                HStack {
+                    Spacer()
                     Button {
-                        removeKey()
+                        withAnimation(SkyletTheme.quickAnimation) {
+                            droplet.selectedMode = .currency
+                        }
                     } label: {
-                        Text("Remove")
-                            .font(SkyletTheme.compactButtonFont)
-                            .padding(.horizontal, 8)
+                        Text("Done")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color.black)
+                            .padding(.horizontal, 16)
                             .padding(.vertical, 4)
-                            .background(SkyletTheme.statusError.opacity(0.18))
-                            .foregroundStyle(SkyletTheme.statusError)
-                            .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
+                            .background(SkyletTheme.inputAccent)
+                            .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
+                    Spacer()
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8)
+            .padding(.top, 4)
+
+            // Currency Pickers Overlay
+            if showDefaultPicker {
+                CurrencySelectorView(
+                    selectedCurrency: $droplet.defaultInputCurrency,
+                    onSelect: { code in
+                        droplet.defaultInputCurrency = code
+                        showDefaultPicker = false
+                    },
+                    onDismiss: { showDefaultPicker = false }
+                )
+                .zIndex(20)
             }
 
-            // Test Feedback / Status
-            if let result = testResult {
-                switch result {
-                case .success(let rate, let timestamp, let latency):
-                    HStack(spacing: 5) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 10))
-                            .foregroundStyle(SkyletTheme.statusLive)
-                        Text("Connected: 1 USD = ₹\(rate) · \(timestamp) (\(latency)ms)")
-                            .font(SkyletTheme.captionFont)
-                            .foregroundStyle(SkyletTheme.statusLive)
-                    }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(SkyletTheme.statusLive.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-
-                case .failure(let errorMsg):
-                    HStack(spacing: 5) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 10))
-                            .foregroundStyle(SkyletTheme.statusError)
-                        Text(errorMsg)
-                            .font(SkyletTheme.captionFont)
-                            .foregroundStyle(SkyletTheme.statusError)
-                            .lineLimit(2)
-                    }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(SkyletTheme.statusError.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: DroppyRadius.xs, style: .continuous))
-                }
-            } else if let msg = statusMessage {
-                Text(msg)
-                    .font(SkyletTheme.captionFont)
-                    .foregroundStyle(SkyletTheme.skyBlue)
+            if showLocalPicker {
+                CurrencySelectorView(
+                    selectedCurrency: $droplet.localTargetCurrency,
+                    onSelect: { code in
+                        droplet.localTargetCurrency = code
+                        showLocalPicker = false
+                    },
+                    onDismiss: { showLocalPicker = false }
+                )
+                .zIndex(20)
             }
-
-            // Free Plan Quota Note
-            HStack(spacing: 4) {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 9))
-                Text("Free Basic Plan: 8 credits/min, 800 req/day. Skylet automatically caches queries for 5 minutes.")
-                    .font(SkyletTheme.captionFont)
-            }
-            .foregroundStyle(SkyletTheme.tertiaryText)
         }
-        .padding(DroppySpacing.sm)
         .onAppear {
-            loadExistingKeyStatus()
+            loadStoredKey()
         }
     }
 
-    private func loadExistingKeyStatus() {
-        if let stored = droplet.keychain.get(key: "twelvedata_api_key"), !stored.isEmpty {
-            hasStoredKey = true
-            apiKeyInput = stored
-        } else {
-            hasStoredKey = false
+    // MARK: - Header Row
+
+    private var headerRow: some View {
+        HStack {
+            Button {
+                withAnimation(SkyletTheme.quickAnimation) {
+                    droplet.selectedMode = .currency
+                }
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 10, weight: .semibold))
+                    Text("Back")
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundStyle(SkyletTheme.secondaryText)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Text("Settings")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Color.white)
+
+            Spacer()
+
+            // Status Indicator (Figma top-right)
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(isVerifiedActive ? SkyletTheme.activeStatus : Color.white.opacity(0.40))
+                    .frame(width: 5, height: 5)
+                Text(isVerifiedActive ? "• API Active" : (hasStoredKey ? "• Stored" : "• Daily Reference"))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(isVerifiedActive ? SkyletTheme.activeStatus : SkyletTheme.secondaryText)
+            }
         }
     }
 
-    private func saveKey() {
+    // MARK: - API Key Row
+
+    private var apiKeyRow: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .center, spacing: 6) {
+                Text("Api key")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.85))
+                    .frame(width: 52, alignment: .leading)
+
+                // Light grey text field matching Figma reference
+                HStack(spacing: 4) {
+                    Group {
+                        if isRevealed {
+                            TextField("", text: $apiKeyInput)
+                        } else {
+                            SecureField("", text: $apiKeyInput)
+                        }
+                    }
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(SkyletTheme.darkInputText)
+                    .onSubmit { saveAPIKey() }
+
+                    // Eye Icon (reveal / hide)
+                    Button {
+                        isRevealed.toggle()
+                    } label: {
+                        if isRevealed {
+                            SkyletIcon.EyeSlashShape()
+                                .stroke(Color.black.opacity(0.75), lineWidth: 1.5)
+                                .frame(width: 13, height: 13)
+                        } else {
+                            SkyletIcon.EyeShape()
+                                .stroke(Color.black.opacity(0.75), lineWidth: 1.5)
+                                .frame(width: 13, height: 13)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .help(isRevealed ? "Hide key" : "Show key")
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(SkyletTheme.lightControls)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                // Info Button
+                Button {
+                    showInfoPopover.toggle()
+                } label: {
+                    SkyletIcon.InfoBubbleShape()
+                        .stroke(Color.white.opacity(0.60), lineWidth: 1.5)
+                        .frame(width: 14, height: 14)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showInfoPopover) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Twelve Data Forex API Key")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("Enables genuine real-time USD/INR quotes and intraday charts. Stored securely in macOS Keychain.\n\nGet a free key at twelvedata.com/forex.")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .padding(10)
+                    .frame(width: 200)
+                }
+            }
+
+            if let msg = statusFeedback {
+                Text(msg)
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(SkyletTheme.skyBlue)
+                    .padding(.leading, 58)
+            }
+        }
+    }
+
+    // MARK: - Default Input Currency Row
+
+    private var defaultInputCurrencyRow: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Default")
+                    .font(.system(size: 9.5, weight: .regular))
+                    .foregroundStyle(Color.white.opacity(0.40))
+                Text("Input Currency :")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.85))
+            }
+
+            Spacer()
+
+            Button {
+                showDefaultPicker = true
+            } label: {
+                let symbol = CurrencyMetadata.symbol(for: droplet.defaultInputCurrency)
+                Text("\(symbol) \(droplet.defaultInputCurrency.rawValue)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: - Choose Local Currency Row
+
+    private var chooseLocalCurrencyRow: some View {
+        HStack(spacing: 8) {
+            Text("Choose Your Local Currency :")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.85))
+
+            Spacer()
+
+            Button {
+                showLocalPicker = true
+            } label: {
+                let symbol = CurrencyMetadata.symbol(for: droplet.localTargetCurrency)
+                Text("\(symbol) \(droplet.localTargetCurrency.rawValue)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: - Graph Toggle Row
+
+    private var graphToggleRow: some View {
+        HStack(spacing: 8) {
+            Text("Graph :")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.85))
+
+            Spacer()
+
+            Toggle("", isOn: $droplet.isGraphEnabled)
+                .toggleStyle(SwitchToggleStyle(tint: SkyletTheme.skyBlue))
+                .labelsHidden()
+                .scaleEffect(0.75)
+        }
+    }
+
+    // MARK: - Keychain Helper
+
+    private func loadStoredKey() {
+        if let key = droplet.keychain.get(key: "twelvedata_api_key"), !key.isEmpty {
+            self.apiKeyInput = key
+            self.hasStoredKey = true
+            // Test connection to verify API Active status
+            Task {
+                await verifyKey(key)
+            }
+        }
+    }
+
+    private func saveAPIKey() {
         let trimmed = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        do {
-            try droplet.keychain.save(key: "twelvedata_api_key", value: trimmed)
-            hasStoredKey = true
-            statusMessage = "Key saved securely to macOS Keychain."
-            testResult = nil
-        } catch {
-            statusMessage = "Failed to save: \(error.localizedDescription)"
-        }
-    }
-
-    private func removeKey() {
-        do {
-            try droplet.keychain.delete(key: "twelvedata_api_key")
+        if trimmed.isEmpty {
+            try? droplet.keychain.delete(key: "twelvedata_api_key")
             hasStoredKey = false
-            apiKeyInput = ""
-            statusMessage = "Key removed from Keychain. Fallback reference rates will be used."
-            testResult = nil
-        } catch {
-            statusMessage = "Failed to remove: \(error.localizedDescription)"
-        }
-    }
-
-    private func testConnection() {
-        isTesting = true
-        testResult = nil
-        statusMessage = nil
-
-        let testKey = apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? (droplet.keychain.get(key: "twelvedata_api_key") ?? "")
-            : apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !testKey.isEmpty else {
-            isTesting = false
-            testResult = .failure(message: "No API key provided to test.")
-            return
-        }
-
-        let startTime = DispatchTime.now()
-
-        Task {
-            let tempKeychain = InMemoryKeychainManager(initialItems: ["twelvedata_api_key": testKey])
-            let provider = TwelveDataRateProvider(keychain: tempKeychain)
-
+            isVerifiedActive = false
+            statusFeedback = "Key removed from Keychain."
+        } else {
             do {
-                let entry = try await provider.fetchRate(from: .usd, to: .inr)
-                let endTime = DispatchTime.now()
-                let nanoTime = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
-                let latencyMs = Int(nanoTime / 1_000_000)
-
-                await MainActor.run {
-                    self.isTesting = false
-                    self.testResult = .success(
-                        rate: entry.rate,
-                        timestamp: entry.providerDateString,
-                        latencyMs: latencyMs
-                    )
+                try droplet.keychain.save(key: "twelvedata_api_key", value: trimmed)
+                hasStoredKey = true
+                statusFeedback = "Saved in macOS Keychain."
+                Task {
+                    await verifyKey(trimmed)
                 }
             } catch {
-                await MainActor.run {
-                    self.isTesting = false
-                    self.testResult = .failure(message: error.localizedDescription)
-                }
+                statusFeedback = "Keychain error: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func verifyKey(_ key: String) async {
+        let provider = TwelveDataRateProvider(keychain: droplet.keychain)
+        do {
+            _ = try await provider.fetchRate(from: .usd, to: .inr)
+            await MainActor.run {
+                self.isVerifiedActive = true
+                self.statusFeedback = "API Active & Verified."
+            }
+        } catch {
+            await MainActor.run {
+                self.isVerifiedActive = false
+                self.statusFeedback = "Key verification failed."
             }
         }
     }

@@ -19,3 +19,17 @@ This document provides transparent engineering documentation regarding platform 
 
 ## 3. Unsupported Currencies
 - Unofficial, defunct, or unlisted currencies not included in ISO 4217 or unsupported by the forex provider cannot be converted. In such cases, Skylet indicates that the currency pair is unsupported and displays a clear explanation.
+
+---
+
+## 4. Historical Data Quotas & Intraday Availability
+- **Intraday Chart Provider Requirement**: Intraday historical charts (`1D` at 15-minute intervals and `5D` at 1-hour intervals) require a Twelve Data API key. Keyless central bank providers (such as Frankfurter / European Central Bank) publish daily closing reference points only, not intraday market ticks.
+- **Honest Intraday Unavailable State**: When no Twelve Data key is configured, selecting `1D` or `5D` displays a clear explanatory message prompt rather than synthesizing fabricated ticks from daily averages.
+- **Reference Range Coverage**: Daily reference ranges (`1M`, `1Y`, `5Y`, `Max`) work keylessly via Frankfurter for ECB-tracked currency pairs. Currencies outside the ECB's published basket require Twelve Data.
+- **Quota Throttling**: Twelve Data Basic tier limits to 8 API requests/minute. Skylet's actor-based historical cache uses range-specific TTLs (5m for intraday, 12h for 1M/1Y, 24h for 5Y/Max) and concurrent request deduplication to prevent quota exhaustion.
+
+---
+
+## 5. Licensing & Display Rights
+- Market quotes and historical series are queried directly client-side using the user's personal Twelve Data API key or public central-bank reference endpoints.
+- Skylet acts strictly as a native local display client on macOS and does not redistribute, mirror, or commercialize proprietary financial data streams.

@@ -20,14 +20,38 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
     private let activitySubject = CurrentValueSubject<LiveActivityState?, Never>(nil)
 
     public let rateService: CurrencyRateService
+    public let historyService: CurrencyHistoryService
     public let keychain: KeychainStoring
 
     @Published public var selectedMode: SkyletMode = .currency
     @Published public private(set) var latestConversion: CurrencyConversionResult?
 
+    // Persisted User Preferences
+    @Published public var defaultInputCurrency: CurrencyCode {
+        didSet {
+            UserDefaults.standard.set(defaultInputCurrency.rawValue, forKey: "skylet_default_input_currency")
+        }
+    }
+    @Published public var localTargetCurrency: CurrencyCode {
+        didSet {
+            UserDefaults.standard.set(localTargetCurrency.rawValue, forKey: "skylet_local_target_currency")
+        }
+    }
+    @Published public var isGraphEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(isGraphEnabled, forKey: "skylet_graph_enabled")
+        }
+    }
+    @Published public var selectedGraphRange: CurrencyHistoryRange {
+        didSet {
+            UserDefaults.standard.set(selectedGraphRange.rawValue, forKey: "skylet_selected_graph_range")
+        }
+    }
+
     public init(
         keychain: KeychainStoring = MacOSKeychainManager.shared,
-        rateService: CurrencyRateService? = nil
+        rateService: CurrencyRateService? = nil,
+        historyService: CurrencyHistoryService? = nil
     ) {
         self.keychain = keychain
         self.rateService = rateService ?? CurrencyRateService(
@@ -36,6 +60,31 @@ public final class SkyletDroplet: NSObject, ObservableObject, Droplet {
             secondaryReferenceProvider: FrankfurterRateProvider(),
             cache: CurrencyRateCache.shared
         )
+
+        let resolvedHistory = historyService ?? CurrencyHistoryService(
+            cache: CurrencyHistoryCache(),
+            twelveDataProvider: TwelveDataHistoryProvider(apiKeyProvider: { [keychain] in
+                keychain.get(key: "twelvedata_api_key")
+            }),
+            fallbackProvider: FrankfurterHistoryProvider()
+        )
+        self.historyService = resolvedHistory
+
+        let savedInput = UserDefaults.standard.string(forKey: "skylet_default_input_currency") ?? "USD"
+        self.defaultInputCurrency = CurrencyCode(savedInput) ?? .usd
+
+        let savedTarget = UserDefaults.standard.string(forKey: "skylet_local_target_currency") ?? "INR"
+        self.localTargetCurrency = CurrencyCode(savedTarget) ?? .inr
+
+        if UserDefaults.standard.object(forKey: "skylet_graph_enabled") != nil {
+            self.isGraphEnabled = UserDefaults.standard.bool(forKey: "skylet_graph_enabled")
+        } else {
+            self.isGraphEnabled = true
+        }
+
+        let savedRange = UserDefaults.standard.string(forKey: "skylet_selected_graph_range") ?? "1M"
+        self.selectedGraphRange = CurrencyHistoryRange(rawValue: savedRange) ?? .oneMonth
+
         super.init()
     }
 
@@ -111,10 +160,19 @@ extension SkyletDroplet: LiveActivityProviding {
 
     public func makeCompactLeading() -> AnyView {
         AnyView(
-            HStack(spacing: 3) {
-                Image(systemName: "indianrupeesign.circle.fill")
-                    .font(.system(size: DroppyLiveActivityMetrics.iconSize, weight: .semibold))
-                    .foregroundStyle(SkyletTheme.skyBlue)
+            Group {
+                if let conv = latestConversion {
+                    Text(CurrencyFormatter.format(amount: conv.sourceAmount, currency: conv.sourceCurrency))
+                        .font(.system(size: DroppyLiveActivityMetrics.labelFontSize, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+                } else {
+                    HStack(spacing: 3) {
+                        Image(systemName: "indianrupeesign.circle.fill")
+                            .font(.system(size: DroppyLiveActivityMetrics.iconSize, weight: .semibold))
+                            .foregroundStyle(SkyletTheme.skyBlue)
+                    }
+                }
             }
         )
     }

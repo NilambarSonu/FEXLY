@@ -11,6 +11,32 @@ import DroppyKit
 
 /// Unified Design System for Skylet conforming to DroppyKit's design language.
 public enum SkyletTheme {
+    // MARK: - Figma Specification Palette
+
+    /// Outer background: #1E1E1E
+    public static let outerBackground = Color(red: 0x1E/255.0, green: 0x1E/255.0, blue: 0x1E/255.0)
+
+    /// Main panel surface: #414141
+    public static let mainPanel = Color(red: 0x41/255.0, green: 0x41/255.0, blue: 0x41/255.0)
+
+    /// Input accent pill: #C4FBFF (pale cyan)
+    public static let inputAccent = Color(red: 0xC4/255.0, green: 0xFB/255.0, blue: 0xFF/255.0)
+
+    /// Light controls: #D9D9D9
+    public static let lightControls = Color(red: 0xD9/255.0, green: 0xD9/255.0, blue: 0xD9/255.0)
+
+    /// Active provider status tint: #B3FC9C (light green)
+    public static let activeStatus = Color(red: 0xB3/255.0, green: 0xFC/255.0, blue: 0x9C/255.0)
+
+    /// Graph card background: #22242A
+    public static let graphBackground = Color(red: 0x22/255.0, green: 0x24/255.0, blue: 0x2A/255.0)
+
+    /// Chart line color: Restrained coral/salmon (#F87171)
+    public static let chartLine = Color(red: 0xF8/255.0, green: 0x71/255.0, blue: 0x71/255.0)
+
+    /// Dark text inside pale cyan inputs: #111827
+    public static let darkInputText = Color(red: 0x11/255.0, green: 0x18/255.0, blue: 0x27/255.0)
+
     // MARK: - Brand Palette (Sky-Blue Accent Ladder)
 
     /// Primary brand accent: #38BDF8

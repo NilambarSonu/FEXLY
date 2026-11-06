@@ -65,6 +65,16 @@ public enum CurrencyFormatter {
         return "1 \(from.rawValue) = \(rateStr) \(to.rawValue)"
     }
 
+    /// Formats a raw rate value with standard 2-4 decimal places.
+    public static func formatRateValue(_ rate: Decimal) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 4
+        formatter.locale = usLocale
+        return formatter.string(from: rate as NSDecimalNumber) ?? "\(rate)"
+    }
+
     /// Returns a clean copyable string representing the conversion result.
     public static func copyableSummary(
         fromAmount: Decimal,
