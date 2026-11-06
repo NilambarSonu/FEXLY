@@ -14,6 +14,7 @@ import SkyletCore
 public final class FexlyDroplet: NSObject, ObservableObject, Droplet {
     /// Must equal `DroppyDropletID` in Info.plist and `id` in `droplet.json`.
     public nonisolated static let id: DropletID = "fexly"
+    public nonisolated static let widgetID: ShelfWidgetID = "fexly"
 
     private var host: DropletHost?
     private var cancellables = Set<AnyCancellable>()
@@ -38,7 +39,7 @@ public final class FexlyDroplet: NSObject, ObservableObject, Droplet {
     }
 
     public func notifyLayoutChanged() {
-        host?.shelf.invalidateLayout(for: Self.id)
+        host?.shelf.invalidateLayout(for: Self.widgetID)
         host?.shelf.invalidateLayout(for: "skylet")
     }
 
@@ -197,7 +198,7 @@ extension FexlyDroplet: ShelfWidgetProviding {
         let cardHeight: CGFloat = (selectedMode == .settings) ? 236 : 160
         return [
             ShelfWidgetDescriptor(
-                id: Self.id,
+                id: Self.widgetID,
                 title: "Fexly",
                 systemImage: "sparkles",
                 layoutTraits: ShelfWidgetLayoutTraits(
