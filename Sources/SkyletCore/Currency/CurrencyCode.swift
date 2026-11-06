@@ -50,5 +50,11 @@ public struct CurrencyCode: Hashable, Codable, Sendable, CustomStringConvertible
     public static let bdt: CurrencyCode = "BDT"
     public static let pkr: CurrencyCode = "PKR"
     public static let npr: CurrencyCode = "NPR"
+
+    public static let allCases: [CurrencyCode] = [
+        .usd, .inr, .eur, .gbp, .jpy, .cny, .aud, .cad, .sgd, .chf,
+        .aed, .sar, .nzd, .hkd, .krw, .brl, .thb, .myr, .idr, .bdt,
+        .pkr, .npr
+    ]
 }
 

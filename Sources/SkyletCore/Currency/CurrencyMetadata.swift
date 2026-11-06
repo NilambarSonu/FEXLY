@@ -261,6 +261,11 @@ public enum CurrencyRegistry {
     public static func symbol(for code: CurrencyCode) -> String {
         info(for: code).symbol
     }
+
+    /// Lookup full currency name for a given currency code.
+    public static func name(for code: CurrencyCode) -> String {
+        info(for: code).name
+    }
 }
 
 /// Backwards-compatible alias for currency metadata lookup.

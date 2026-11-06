@@ -186,193 +186,212 @@ public struct CurrencyView: View {
 
     private var resultStateView: some View {
         VStack(spacing: 8) {
-            // Upper Row: Back Button (Left), Source Amount Capsule with Dropdown, Rate Formula, Pin Icon & Status (Right)
-            HStack(alignment: .center, spacing: 8) {
-                // Back Button (Item 7)
-                Button {
-                    withAnimation(SkyletTheme.quickAnimation) {
-                        isShowingResult = false
-                    }
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color.white.opacity(0.90))
-                        .frame(width: 24, height: 24)
-                        .background(
-                            Circle()
-                                .fill(Color.white.opacity(0.10))
-                                .background(.ultraThinMaterial)
-                        )
-                        .clipShape(Circle())
-                        .overlay(Circle().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5))
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help("Back to Currency Input")
+            resultHeaderRow
+            resultLowerContent
+        }
+        .padding(.horizontal, 2)
+        .padding(.top, 2)
+    }
 
-                // Source Amount Capsule: [ Dropdown v | Editable TextField | Refresh Spin ]
-                HStack(spacing: 6) {
-                    // Currency Dropdown Menu (Item 4)
-                    Menu {
-                        ForEach(CurrencyCode.allCases, id: \.self) { c in
-                            Button {
-                                sourceCurrency = c
-                                recalculateWithCurrentInput()
-                            } label: {
-                                HStack {
-                                    Text("\(CurrencyMetadata.symbol(for: c))  \(c.rawValue) — \(CurrencyMetadata.name(for: c))")
-                                    if sourceCurrency == c { Image(systemName: "checkmark") }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 2) {
-                            Text(CurrencyMetadata.symbol(for: sourceCurrency))
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundStyle(Color.white)
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundStyle(Color.white.opacity(0.60))
-                        }
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .help("Change Source Currency")
+    private var resultHeaderRow: some View {
+        HStack(alignment: .center, spacing: 8) {
+            headerBackButton
+            sourceAmountCapsule
+            Spacer(minLength: 0)
+            headerRateAndStatus
+        }
+        .padding(.horizontal, 2)
+    }
 
-                    // Editable Amount TextField (Item 3)
-                    TextField("Amount", text: $editableAmountText)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
-                        .focused($isAmountFocused)
-                        .frame(minWidth: 48)
-                        .onSubmit {
-                            recalculateWithCurrentInput()
-                        }
-
-                    // Refresh / Spin Button (Item 10)
-                    Button {
-                        withAnimation(.spring(response: 0.45, dampingFraction: 0.65)) {
-                            refreshSpinAngle += 360
-                        }
-                        NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
-                        recalculateWithCurrentInput()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color.white.opacity(0.85))
-                            .rotationEffect(.degrees(refreshSpinAngle))
-                            .frame(width: 18, height: 18)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Refresh live exchange rate")
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+    private var headerBackButton: some View {
+        Button {
+            withAnimation(SkyletTheme.quickAnimation) {
+                isShowingResult = false
+            }
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.90))
+                .frame(width: 24, height: 24)
                 .background(
-                    Capsule(style: .continuous)
+                    Circle()
                         .fill(Color.white.opacity(0.10))
                         .background(.ultraThinMaterial)
                 )
-                .clipShape(Capsule(style: .continuous))
-                .overlay(
-                    Capsule(style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
-                )
+                .clipShape(Circle())
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Back to Currency Input")
+    }
 
-                Spacer(minLength: 0)
+    private var sourceAmountCapsule: some View {
+        HStack(spacing: 6) {
+            sourceCurrencyDropdown
+            editableAmountField
+            refreshSpinButton
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.10))
+                .background(.ultraThinMaterial)
+        )
+        .clipShape(Capsule(style: .continuous))
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+        )
+    }
 
-                // Rate formula & Status & Pin Icon (Item 9)
-                HStack(spacing: 8) {
-                    VStack(alignment: .trailing, spacing: 1) {
-                        providerStatusBadge
-
-                        if let res = conversionResult {
-                            let sourceCode = res.sourceCurrency.rawValue
-                            let targetSymbol = CurrencyMetadata.symbol(for: res.targetCurrency)
-                            let formattedRate = CurrencyFormatter.formatRateValue(res.rate)
-                            Text("1 \(sourceCode) = \(targetSymbol)\(formattedRate)")
-                                .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                                .monospacedDigit()
-                                .foregroundStyle(Color.white.opacity(0.85))
-                        }
+    private var sourceCurrencyDropdown: some View {
+        Menu {
+            ForEach(CurrencyCode.allCases, id: \.self) { c in
+                Button {
+                    sourceCurrency = c
+                    recalculateWithCurrentInput()
+                } label: {
+                    HStack {
+                        Text("\(CurrencyMetadata.symbol(for: c))  \(c.rawValue) — \(CurrencyMetadata.name(for: c))")
+                        if sourceCurrency == c { Image(systemName: "checkmark") }
                     }
-
-                    // Pin Icon (Keep shelf awake until cancelled)
-                    Button {
-                        withAnimation(SkyletTheme.quickAnimation) {
-                            droplet.isPinned.toggle()
-                            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
-                        }
-                    } label: {
-                        Image(systemName: droplet.isPinned ? "pin.fill" : "pin")
-                            .font(.system(size: 10.5, weight: .semibold))
-                            .foregroundStyle(droplet.isPinned ? SkyletTheme.skyBlue : Color.white.opacity(0.65))
-                            .rotationEffect(.degrees(droplet.isPinned ? 0 : 45))
-                            .frame(width: 22, height: 22)
-                            .background(
-                                Circle()
-                                    .fill(droplet.isPinned ? SkyletTheme.skyBlue.opacity(0.25) : Color.white.opacity(0.08))
-                                    .background(.ultraThinMaterial)
-                            )
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(droplet.isPinned ? SkyletTheme.skyBlue.opacity(0.50) : Color.white.opacity(0.12), lineWidth: 0.5)
-                            )
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(droplet.isPinned ? "Unpin (Close on click outside)" : "Pin (Stay awake)")
                 }
             }
-            .padding(.horizontal, 2)
+        } label: {
+            HStack(spacing: 2) {
+                Text(CurrencyMetadata.symbol(for: sourceCurrency))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.white)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(Color.white.opacity(0.60))
+            }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 2)
+            .background(Color.white.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+        }
+        .menuStyle(.borderlessButton)
+        .help("Change Source Currency")
+    }
 
-            // Lower Section: Historical Graph Card (Left) & Converted Amount Card (Right)
-            if isCompact {
-                convertedAmountCard
-                    .frame(height: 52)
+    private var editableAmountField: some View {
+        TextField("Amount", text: $editableAmountText)
+            .textFieldStyle(.plain)
+            .font(.system(size: 14, weight: .bold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(AdaptiveColors.notchSurfacePrimaryText)
+            .focused($isAmountFocused)
+            .frame(minWidth: 48)
+            .onSubmit {
+                recalculateWithCurrentInput()
+            }
+    }
+
+    private var refreshSpinButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.65)) {
+                refreshSpinAngle += 360
+            }
+            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+            recalculateWithCurrentInput()
+        } label: {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.85))
+                .rotationEffect(.degrees(refreshSpinAngle))
+                .frame(width: 18, height: 18)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Refresh live exchange rate")
+    }
+
+    private var headerRateAndStatus: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .trailing, spacing: 1) {
+                providerStatusBadge
+
+                if let res = conversionResult {
+                    let sourceCode = res.sourceCurrency.rawValue
+                    let targetSymbol = CurrencyMetadata.symbol(for: res.targetCurrency)
+                    let formattedRate = CurrencyFormatter.formatRateValue(res.rate)
+                    Text("1 \(sourceCode) = \(targetSymbol)\(formattedRate)")
+                        .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(Color.white.opacity(0.85))
+                }
+            }
+
+            // Pin Icon (Keep shelf awake until cancelled)
+            Button {
+                withAnimation(SkyletTheme.quickAnimation) {
+                    droplet.isPinned.toggle()
+                    NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                }
+            } label: {
+                Image(systemName: droplet.isPinned ? "pin.fill" : "pin")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(droplet.isPinned ? SkyletTheme.skyBlue : Color.white.opacity(0.65))
+                    .rotationEffect(.degrees(droplet.isPinned ? 0 : 45))
+                    .frame(width: 22, height: 22)
+                    .background(
+                        Circle()
+                            .fill(droplet.isPinned ? SkyletTheme.skyBlue.opacity(0.25) : Color.white.opacity(0.08))
+                            .background(.ultraThinMaterial)
+                    )
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .strokeBorder(droplet.isPinned ? SkyletTheme.skyBlue.opacity(0.50) : Color.white.opacity(0.12), lineWidth: 0.5)
+                    )
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(droplet.isPinned ? "Unpin (Close on click outside)" : "Pin (Stay awake)")
+        }
+    }
+
+    @ViewBuilder
+    private var resultLowerContent: some View {
+        if isCompact {
+            convertedAmountCard
+                .frame(height: 52)
+            if droplet.isGraphEnabled {
+                HistoricalGraphView(
+                    service: droplet.historyService,
+                    baseCurrency: conversionResult?.sourceCurrency ?? sourceCurrency,
+                    quoteCurrency: conversionResult?.targetCurrency ?? targetCurrency,
+                    selectedRange: $droplet.selectedGraphRange,
+                    isCompact: true
+                )
+                .frame(height: 55)
+            }
+        } else {
+            HStack(spacing: 8) {
                 if droplet.isGraphEnabled {
                     HistoricalGraphView(
                         service: droplet.historyService,
                         baseCurrency: conversionResult?.sourceCurrency ?? sourceCurrency,
                         quoteCurrency: conversionResult?.targetCurrency ?? targetCurrency,
                         selectedRange: $droplet.selectedGraphRange,
-                        isCompact: true
+                        isCompact: false
                     )
-                    .frame(height: 55)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            } else {
-                HStack(spacing: 8) {
-                    if droplet.isGraphEnabled {
-                        HistoricalGraphView(
-                            service: droplet.historyService,
-                            baseCurrency: conversionResult?.sourceCurrency ?? sourceCurrency,
-                            quoteCurrency: conversionResult?.targetCurrency ?? targetCurrency,
-                            selectedRange: $droplet.selectedGraphRange,
-                            isCompact: false
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
 
-                    if droplet.isGraphEnabled {
-                        convertedAmountCard
-                            .frame(width: 160)
-                            .frame(maxHeight: .infinity)
-                    } else {
-                        convertedAmountCard
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
+                if droplet.isGraphEnabled {
+                    convertedAmountCard
+                        .frame(width: 160)
+                        .frame(maxHeight: .infinity)
+                } else {
+                    convertedAmountCard
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }
-        .padding(.horizontal, 2)
-        .padding(.top, 2)
     }
 
     // MARK: - Large Converted Amount Card (Neutral Apple Liquid Glass — Item 6)
@@ -448,37 +467,34 @@ public struct CurrencyView: View {
     private func quickCurrencyChip(code: CurrencyCode, isFirstRowLead: Bool, isFirstRowSecond: Bool) -> some View {
         let isDefault = (code == droplet.defaultInputCurrency)
         let isLocal = (code == droplet.localTargetCurrency)
+        let isAccent = isDefault || isLocal
+
+        let fillColor: Color = isDefault
+            ? Color(red: 0.12, green: 0.48, blue: 0.95).opacity(0.85)
+            : (isLocal ? Color(red: 0.35, green: 0.75, blue: 0.98).opacity(0.70) : Color.white.opacity(0.08))
+        let strokeColor: Color = isDefault
+            ? Color.white.opacity(0.50)
+            : (isLocal ? Color.white.opacity(0.35) : Color.white.opacity(0.08))
+        let strokeWidth: CGFloat = isAccent ? 1.0 : 0.5
+        let fontWeight: Font.Weight = isAccent ? .bold : .medium
 
         let chipView = Button {
             selectShortcut(code: code)
         } label: {
             Text(code.rawValue)
-                .font(.system(size: 9.5, weight: (isDefault || isLocal) ? .bold : .medium))
+                .font(.system(size: 9.5, weight: fontWeight))
                 .foregroundStyle(Color.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 5)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(
-                            isDefault
-                                ? Color(red: 0.12, green: 0.48, blue: 0.95).opacity(0.85) // Apple Vibrant Blue
-                                : (isLocal
-                                    ? Color(red: 0.35, green: 0.75, blue: 0.98).opacity(0.70) // Lighter Sky/Cyan Blue
-                                    : Color.white.opacity(0.08))
-                        )
+                        .fill(fillColor)
                         .background(.ultraThinMaterial)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .strokeBorder(
-                            isDefault
-                                ? Color.white.opacity(0.50)
-                                : (isLocal
-                                    ? Color.white.opacity(0.35)
-                                    : Color.white.opacity(0.08)),
-                            lineWidth: (isDefault || isLocal) ? 1.0 : 0.5
-                        )
+                        .strokeBorder(strokeColor, lineWidth: strokeWidth)
                 )
                 .shadow(color: isDefault ? Color.blue.opacity(0.3) : .clear, radius: 2, x: 0, y: 1)
         }
