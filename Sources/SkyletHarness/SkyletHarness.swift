@@ -11,7 +11,7 @@
 
 import DroppyKit
 import DroppyKitHarness
-import Skylet
+import Fexly
 
 @main
 struct SkyletHarness: DropletHarnessApp {

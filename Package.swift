@@ -20,8 +20,8 @@ let package = Package(
         .library(name: "FexlyCore", targets: ["SkyletCore"]),
         .library(name: "SkyletCore", targets: ["SkyletCore"]),
         // A droplet is a loadable bundle, so its product is a dynamic library.
-        .library(name: "Fexly", type: .dynamic, targets: ["Skylet"]),
-        .library(name: "Skylet", type: .dynamic, targets: ["Skylet"])
+        .library(name: "Fexly", type: .dynamic, targets: ["Fexly"]),
+        .library(name: "Skylet", type: .dynamic, targets: ["Fexly"])
     ],
     dependencies: [
         droppyKitDependency
@@ -33,7 +33,7 @@ let package = Package(
             path: "Sources/SkyletCore"
         ),
         .target(
-            name: "Skylet",
+            name: "Fexly",
             dependencies: [
                 "SkyletCore",
                 .product(name: "DroppyKit", package: droppyKitPackageName)
@@ -43,7 +43,7 @@ let package = Package(
         .executableTarget(
             name: "SkyletHarness",
             dependencies: [
-                "Skylet",
+                "Fexly",
                 .product(name: "DroppyKitHarness", package: droppyKitPackageName)
             ],
             path: "Sources/SkyletHarness"
