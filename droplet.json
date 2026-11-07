@@ -2,6 +2,7 @@
   "id": "fexly",
   "name": "Fexly",
   "version": "2.0.0",
+  "principalClass": "FexlyPrincipal",
   "summary": "Real-time currency converter & historical FX graphs",
   "description": "Fexly brings real-time foreign exchange conversion to Indian Rupees (INR) and world currencies directly to Droppy's Dynamic Island and shelf.\n\nConvert international prices instantly with live Twelve Data Forex rates, interactive historical trend charts (1D to Max), and Decimal-safe financial precision.",
   "category": "productivity",

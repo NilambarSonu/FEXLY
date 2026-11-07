@@ -15,6 +15,6 @@ import Skylet
 
 @main
 struct SkyletHarness: DropletHarnessApp {
-    static func makeDroplet() -> any Droplet { SkyletDroplet() }
+    static func makeDroplet() -> any Droplet { FexlyDroplet() }
 }
 

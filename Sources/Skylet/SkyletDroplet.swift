@@ -16,6 +16,9 @@ public final class FexlyDroplet: NSObject, ObservableObject, Droplet {
     public nonisolated static let id: DropletID = "fexly"
     public nonisolated static let widgetID: ShelfWidgetID = "fexly"
 
+    /// Instance-side identifier conforming to Droplet protocol.
+    public nonisolated var id: DropletID { Self.id }
+
     private var host: DropletHost?
     private var cancellables = Set<AnyCancellable>()
     private let activitySubject = CurrentValueSubject<LiveActivityState?, Never>(nil)
@@ -40,7 +43,6 @@ public final class FexlyDroplet: NSObject, ObservableObject, Droplet {
 
     public func notifyLayoutChanged() {
         host?.shelf.invalidateLayout(for: Self.widgetID)
-        host?.shelf.invalidateLayout(for: "skylet")
     }
 
     // Persisted User Preferences (Support both Fexly and legacy Skylet keys)

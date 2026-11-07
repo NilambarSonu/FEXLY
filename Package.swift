@@ -17,11 +17,11 @@ let package = Package(
     name: "Fexly",
     platforms: [.macOS(.v14)],
     products: [
-        .library(name: "SkyletCore", targets: ["SkyletCore"]),
         .library(name: "FexlyCore", targets: ["SkyletCore"]),
+        .library(name: "SkyletCore", targets: ["SkyletCore"]),
         // A droplet is a loadable bundle, so its product is a dynamic library.
-        .library(name: "Skylet", type: .dynamic, targets: ["Skylet"]),
-        .library(name: "Fexly", type: .dynamic, targets: ["Skylet"])
+        .library(name: "Fexly", type: .dynamic, targets: ["Skylet"]),
+        .library(name: "Skylet", type: .dynamic, targets: ["Skylet"])
     ],
     dependencies: [
         droppyKitDependency
