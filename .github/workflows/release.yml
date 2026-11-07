@@ -1,4 +1,4 @@
-name: Publish Skylet Release
+name: Publish Fexly Release
 
 on:
   push:
@@ -74,7 +74,7 @@ jobs:
         run: |
           droppykit version
 
-      - name: Run Skylet Automated Unit Tests
+      - name: Run Fexly Automated Unit Tests
         run: |
           swift run SkyletTestsRunner
 

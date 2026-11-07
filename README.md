@@ -9,17 +9,17 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/NilambarSonu/SKYLET/releases/latest"><img src="https://img.shields.io/github/v/release/NilambarSonu/SKYLET?color=38BDF8&label=release" alt="Latest Release" /></a>
-  <a href="https://github.com/NilambarSonu/SKYLET/actions/workflows/build-validate.yml"><img src="https://github.com/NilambarSonu/SKYLET/actions/workflows/build-validate.yml/badge.svg" alt="Build Status" /></a>
+  <a href="https://github.com/NilambarSonu/FEXLY/releases/latest"><img src="https://img.shields.io/github/v/release/NilambarSonu/FEXLY?color=38BDF8&label=release" alt="Latest Release" /></a>
+  <a href="https://github.com/NilambarSonu/FEXLY/actions/workflows/build.yml"><img src="https://github.com/NilambarSonu/FEXLY/actions/workflows/build.yml/badge.svg" alt="Build Status" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%2014.0%2B-0B1220" alt="Platform macOS 14+" />
   <img src="https://img.shields.io/badge/Droppy-15.3.0%2B-38BDF8" alt="Droppy 15.3.0+" />
   <img src="https://img.shields.io/badge/architecture-universal%20(arm64%20%2B%20x86__64)-159BE8" alt="Universal Architecture" />
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/NilambarSonu/SKYLET?color=7DD3FC" alt="License MIT" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/NilambarSonu/FEXLY?color=7DD3FC" alt="License MIT" /></a>
 </p>
 
 ---
 
-### [➔ Download Latest Fexly Release](https://github.com/NilambarSonu/SKYLET/releases/latest)
+### [➔ Download Latest Fexly Release](https://github.com/NilambarSonu/FEXLY/releases/latest)
 
 Fexly lives directly inside [Droppy](https://getdroppy.app)’s Dynamic Island and shelf. It delivers dedicated native macOS currency intelligence engineered for financial precision and everyday elegance:
 
@@ -62,7 +62,7 @@ Fexly lives directly inside [Droppy](https://getdroppy.app)’s Dynamic Island a
 - **Architecture**: Universal binary (`arm64` Apple Silicon + `x86_64` Intel)
 
 ### Step 1: Download the Droplet
-Download [`Fexly.droplet.zip`](https://github.com/NilambarSonu/SKYLET/releases/latest) from the latest release and unzip it to obtain `Fexly.droplet`.
+Download [`Fexly.droplet.zip`](https://github.com/NilambarSonu/FEXLY/releases/latest) from the latest release and unzip it to obtain `Fexly.droplet`.
 
 ### Step 2: Install into Droppy
 **Method A (Drag & Drop — Recommended)**:
@@ -98,7 +98,7 @@ Updating Fexly is safe and completely preserves your Keychain-stored Twelve Data
    ```bash
    cp -R ~/Library/Application\ Support/Droppy/Droplets/fexly/Fexly.droplet ~/Downloads/Fexly-backup.droplet
    ```
-2. **Install New Release**: Download and unzip the latest `Fexly.droplet.zip` from [Releases](https://github.com/NilambarSonu/SKYLET/releases/latest), then copy `Fexly.droplet` to your Droppy droplets folder:
+2. **Install New Release**: Download and unzip the latest `Fexly.droplet.zip` from [Releases](https://github.com/NilambarSonu/FEXLY/releases/latest), then copy `Fexly.droplet` to your Droppy droplets folder:
    ```bash
    cp -R Fexly.droplet ~/Library/Application\ Support/Droppy/Droplets/fexly/
    ```

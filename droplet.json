@@ -1,7 +1,7 @@
 {
   "id": "fexly",
   "name": "Fexly",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "summary": "Real-time currency converter & historical FX graphs",
   "description": "Fexly brings real-time foreign exchange conversion to Indian Rupees (INR) and world currencies directly to Droppy's Dynamic Island and shelf.\n\nConvert international prices instantly with live Twelve Data Forex rates, interactive historical trend charts (1D to Max), and Decimal-safe financial precision.",
   "category": "productivity",
@@ -23,11 +23,11 @@
   "creator": {
     "name": "Nilambar Sonu",
     "kind": "community",
-    "url": "https://github.com/NilambarSonu/Fexly",
+    "url": "https://github.com/NilambarSonu/FEXLY",
     "avatar": "Creator.png"
   },
   "source": {
-    "repository": "https://github.com/NilambarSonu/Fexly",
+    "repository": "https://github.com/NilambarSonu/FEXLY",
     "license": "MIT"
   },
   "screenshots": [

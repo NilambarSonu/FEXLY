@@ -7,22 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.0] - 2026-11-06
+## [2.0.0] - 2026-11-07
 
 ### Status
-Fexly Product Rebrand, Apple Liquid Glass UI/UX Overhaul & Historical FX Graph Engine.
+Fexly 2.0 Major Milestone Release — Complete Architectural Reconstruction, Apple Liquid Glass UI/UX & Historical FX Graph Engine.
 
 ### Highlights
-- **Product Rebranding to Fexly**:
-  - Full product rebranding from Skylet to **Fexly**.
+- **Product Rebirth as Fexly**:
+  - Full product rebranding and architectural reconstruction to **Fexly** (`https://github.com/NilambarSonu/FEXLY`).
   - New official continuous Apple squircle app icon suite derived directly from master artwork `Fexly.png`.
-  - Icon bundle optimized down to 310 KB, ensuring the universal `.droplet.zip` package stays lightweight (1.0MB - 1.2MB).
+  - Icon bundle optimized down to 35 KB, reducing universal `.droplet.zip` package size to **1.0 MB** (down from 2.1 MB).
   - Renamed droplet identifier to `"fexly"` and bundle icon to `Fexly.icon`.
-  - Maintained complete backward compatibility with aliases for `SkyletDroplet`, `SkyletRootView`, and legacy user preferences.
-- **Apple Liquid Glass UI/UX Refinement**:
-  - **Fluid Palette Reassignment**: Click and drag any shortcut card (e.g. `USD`) to detach a luminous color swatch that smoothly follows the cursor with zero lag; release over another card to reassign default currencies.
+  - Dedicated focus purely on Real-Time FX & Currency Intelligence with zero legacy Focus Timer overhead.
+- **Apple Liquid Glass UI/UX Overhaul**:
+  - **Fluid Palette Reassignment**: Click and drag any shortcut card (e.g. `USD`) to detach a luminous color swatch that smoothly follows the cursor with zero lag; release over another card to instantly reassign default currencies with haptic feedback.
   - **Continuous Pointer Chart Hover**: Subtle vertical guide line and rate/date tooltip badge strictly aligned with mouse pointer position.
-  - **Clean Single Dot Status**: Single crisp dot for `• API Active` without duplicate bullet characters or desynced states across views.
+  - **Single Dot Status Badge**: Single crisp vector circle for `• API Active` without duplicate bullet characters or desynced states across views.
   - **Unclipped Settings Shelf**: Increased settings shelf height to 236pt with dynamic `invalidateLayout` notification, ensuring the bottom Graph toggle is fully visible with comfortable clearance.
   - **Notch Single-Line Geometry**: Added `.fixedSize(horizontal: true, vertical: false)` and 5-second automatic dismiss to prevent multi-line text wrapping in the notch.
 - **Historical FX Graph Engine**:
@@ -165,12 +165,15 @@ First Official Production Release.
 - Universal binary (`arm64` + `x86_64`)
 
 ### Installation & Updating
-1. Download `Skylet.droplet.zip` from the [Latest Release](https://github.com/NilambarSonu/SKYLET/releases/latest).
-2. Unpack the ZIP archive to reveal `Skylet.droplet`.
-3. Drag `Skylet.droplet` into **Droppy Settings ➔ Store ➔ Local Droplets** (or copy to `~/Library/Application Support/Droppy/Droplets/skylet/Skylet.droplet`).
-4. Droppy will immediately load Skylet into your shelf.
+1. Download `Fexly.droplet.zip` from the [Latest Release](https://github.com/NilambarSonu/FEXLY/releases/latest).
+2. Unpack the ZIP archive to reveal `Fexly.droplet`.
+3. Drag `Fexly.droplet` into **Droppy Settings ➔ Store ➔ Local Droplets** (or copy to `~/Library/Application Support/Droppy/Droplets/fexly/Fexly.droplet`).
+4. Droppy will immediately load Fexly into your shelf.
 
 ---
 
-[1.0.1]: https://github.com/NilambarSonu/SKYLET/releases/tag/v1.0.1
-[1.0.0]: https://github.com/NilambarSonu/SKYLET/releases/tag/v1.0.0
+[2.0.0]: https://github.com/NilambarSonu/FEXLY/releases/tag/v2.0.0
+[1.2.0]: https://github.com/NilambarSonu/FEXLY/releases/tag/v1.2.0
+[1.1.0]: https://github.com/NilambarSonu/FEXLY/releases/tag/v1.1.0
+[1.0.1]: https://github.com/NilambarSonu/FEXLY/releases/tag/v1.0.1
+[1.0.0]: https://github.com/NilambarSonu/FEXLY/releases/tag/v1.0.0

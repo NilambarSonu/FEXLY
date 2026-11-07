@@ -11,7 +11,7 @@ import SkyletCore
 @MainActor
 func runAllTests() async {
     print("==================================================")
-    print("           SKYLET AUTOMATED TEST SUITE            ")
+    print("            FEXLY AUTOMATED TEST SUITE            ")
     print("==================================================")
 
     var passed = 0
@@ -892,7 +892,8 @@ func runAllTests() async {
     }
 
     // 6. FrankfurterHistoryProvider: Intraday ranges rejected
-    let frankfurterProvider = FrankfurterHistoryProvider(session: mockSession)
+    let frankfurterFixtureAnchor = ISO8601DateFormatter().date(from: "2026-10-10T12:00:00Z")!
+    let frankfurterProvider = FrankfurterHistoryProvider(session: mockSession, dateProvider: { frankfurterFixtureAnchor })
     do {
         _ = try await frankfurterProvider.fetchHistory(from: .usd, to: .inr, range: .oneDay)
         assert(false, "Frankfurter should reject 1D intraday")

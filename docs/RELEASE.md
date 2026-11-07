@@ -100,7 +100,7 @@ Updating Skylet is safe and completely preserves your Keychain-stored Twelve Dat
    ```bash
    cp -R ~/Library/Application\ Support/Droppy/Droplets/skylet/Skylet.droplet ~/Downloads/Skylet-backup.droplet
    ```
-2. **Install New Release**: Download and unzip the latest `Skylet.droplet.zip` from [GitHub Releases](https://github.com/NilambarSonu/SKYLET/releases/latest), then copy `Skylet.droplet` to your Droppy droplets folder:
+2. **Install New Release**: Download and unzip the latest `Fexly.droplet.zip` from [GitHub Releases](https://github.com/NilambarSonu/FEXLY/releases/latest), then copy `Fexly.droplet` to your Droppy droplets folder:
    ```bash
    cp -R Skylet.droplet ~/Library/Application\ Support/Droppy/Droplets/skylet/
    ```

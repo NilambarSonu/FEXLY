@@ -1,4 +1,4 @@
-name: Build, Test & Validate Skylet Droplet
+name: Build, Test & Validate Fexly Droplet
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
   build-and-validate:
     runs-on: macos-15
     steps:
-      - name: Checkout Skylet Repository
+      - name: Checkout Fexly Repository
         uses: actions/checkout@v4
 
       - name: Select Xcode Toolchain
@@ -39,7 +39,7 @@ jobs:
         run: |
           droppykit version
 
-      - name: Run Skylet Unit Test Suite
+      - name: Run Fexly Unit Test Suite
         run: |
           swift run SkyletTestsRunner
 
